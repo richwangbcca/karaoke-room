@@ -1,0 +1,37 @@
+# Node dependencies
+node_modules/
+
+# TypeScript build output
+dist/
+build/
+*.tsbuildinfo
+
+# macOS system files
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# dotenv files
+.env
+.env.*  # covers things like .env.local, .env.production
+
+# Editor configs
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+
+# Misc
+*.local
+*.sublime-project
+*.sublime-workspace
+
+# pnpm
+.pnpm-debug.log
+.pnpm-store/
