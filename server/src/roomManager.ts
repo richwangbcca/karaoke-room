@@ -2,7 +2,7 @@
 /*
 TODO: Refactor into class based RoomManager
 */
-import { User, Room  } from './structures'
+import { User, Room } from './structures'
 
 export const rooms = new Map<string, Room>();
 
