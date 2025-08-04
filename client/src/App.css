@@ -1,0 +1,35 @@
+#root {
+  width: 50%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.home {
+  text-align: center;
+}
+
+.home h1 {
+  font-size: 100px;
+  margin-bottom: 50px;
+  line-height: 1.1;
+}
+
+.home h2 {
+  margin-bottom: 100px;
+}
+
+.home button {
+  display: block;
+  margin: 1.875rem auto;
+  width: 18.75rem;
+  font-size: 1.6rem;
+  padding: 0.7em 1.2em;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
