@@ -6,13 +6,13 @@ import dotenv from 'dotenv';
 
 import { Song } from './structures'
 import { createRoom, joinRoom, getRoom } from './roomManager'
-import { addSong, getRoundRobinQueue } from './queueManager'
+import { addSong, skipSong, getRoundRobinQueue } from './queueManager'
 import { youtubeRouter } from './api/youtube';
 
 dotenv.config();
 
 const app = express();
-app.use('/api', youtubeRouter);
+app.use('/api/youtube', youtubeRouter);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
@@ -27,8 +27,20 @@ io.on('connection', (socket) => {
     socket.on('host:createRoom', (_, callback) => {
         const code = createRoom(socket.id);
         console.log(`User ${socket.id} created a room: ${code}`);
+
+        socket.join(code);
+
         callback({ code });
     });
+
+    socket.on('host:skipSong', ({ code }, callback) => {
+        const success = skipSong(code);
+        if(!success) return;
+
+        const queue = getRoundRobinQueue(code);
+        io.to(code).emit('queue:update', queue);
+        callback({ success: true });
+    })
 
     socket.on('user:joinRoom', ({ code, name }, callback) => {
         const id = uuidv4();
@@ -41,6 +53,7 @@ io.on('connection', (socket) => {
         
         if (!success) {
             callback({ error: 'Room not found'});
+            return;
         }
 
         socket.join(code);
@@ -65,12 +78,12 @@ io.on('connection', (socket) => {
         }
 
         const queue = getRoundRobinQueue(code);
-        io.to(code).emit('queue.update', queue);
+        io.to(code).emit('queue:update', queue);
         callback({ success: true });
     })
 
     socket.on('disconnect', () => {
-        console.log('User disconneced:', socket.id);
+        console.log('User disconnected:', socket.id);
     });
 });
 

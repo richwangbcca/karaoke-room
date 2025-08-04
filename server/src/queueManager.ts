@@ -11,6 +11,20 @@ export function addSong(code: string, userId: string, song: Song): boolean {
     return true;
 }
 
+export function skipSong(code: string): boolean {
+    const room = rooms.get(code);
+    if (!room) return false;
+
+    const curQueue = getRoundRobinQueue(code);
+    if (!curQueue || curQueue.length === 0) return false; 
+
+    const user = room.users.get(curQueue[0].requestedBy);
+    if (!user) return false;
+
+    user.queue.shift();
+    return true;
+}
+
 export function getRoundRobinQueue(code: string): Song[] {
     const room = rooms.get(code);
     if (!room) return [];

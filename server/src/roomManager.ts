@@ -1,4 +1,3 @@
-
 /*
 TODO: Refactor into class based RoomManager
 */
@@ -29,5 +28,5 @@ export function getRoom(code: string): Room | undefined {
 
 function generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789';
-    return Array.from ({ length: 5}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
