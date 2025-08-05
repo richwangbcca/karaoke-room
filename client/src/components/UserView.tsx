@@ -44,9 +44,15 @@ export default function UserView() {
 
   if (!joined) {
     return (
-      <div>
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <input placeholder="Room code" value={roomCode.toUpperCase()} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} />
+      <div className="lobby">
+        <div className="input-box">
+          <label>Name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="input-box">
+          <label>Room Code</label>
+          <input value={roomCode.toUpperCase()} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} />
+        </div>
         <button onClick={joinRoom}>Join Room</button>
       </div>
     );

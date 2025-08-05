@@ -38,7 +38,7 @@
   position: fixed;
   top: 0;
   left: 5vw;
-  z-index: -1; /* Push behind other UI */
+  z-index: -1;
   width: 90vw;
   height: 90vh;
   overflow: hidden;
@@ -52,4 +52,48 @@
   transform: translate(-50%, -50%);
   min-width: 100%;
   min-height: 100%;
+}
+
+.lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 2rem;
+
+}
+
+.input-box {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+  width: 300px;
+}
+
+.input-box label {
+  text-align: left;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.input-box input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid grey;
+  border-radius: 4px;
+}
+
+
+.lobby button {
+  display: block;
+  margin: 1.875rem auto;
+  width: 15rem;
+  font-size: 1.6rem;
+  padding: 0.7em 1.2em;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
 }
