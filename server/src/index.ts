@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 import { Song } from './structures'
 import { createRoom, joinRoom, getRoom } from './roomManager'
-import { addSong, skipSong, getRoundRobinQueue } from './queueManager'
+import { addSong, skipSong } from './queueManager'
 import { youtubeRouter } from './api/youtube';
 
 dotenv.config();
@@ -37,8 +37,10 @@ io.on('connection', (socket) => {
         const success = skipSong(code);
         if(!success) return;
 
-        const queue = getRoundRobinQueue(code);
-        io.to(code).emit('queue:update', queue);
+        const room = getRoom(code);
+        if(!room) return;
+
+        io.to(code).emit('queue:update', room.queue);
         callback({ success: true });
     })
 
@@ -77,8 +79,10 @@ io.on('connection', (socket) => {
             return;
         }
 
-        const queue = getRoundRobinQueue(code);
-        io.to(code).emit('queue:update', queue);
+        const room = getRoom(code);
+        if(!room) return;
+
+        io.to(code).emit('queue:update', room.queue);
         callback({ success: true });
     })
 

@@ -1,6 +1,3 @@
-/*
-TODO: Refactor into class based RoomManager
-*/
 import { User, Room } from './structures'
 
 export const rooms = new Map<string, Room>();
@@ -11,6 +8,7 @@ export function createRoom(hostSocketId: string): string {
         code,
         hostId: hostSocketId,
         users: new Map(),
+        queue: [],
     });
     return code;
 }
