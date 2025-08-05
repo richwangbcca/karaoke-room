@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import socket from '../socket';
-
-// TODO: Update round robin queue when songs are added
+import YouTube from 'react-youtube'
 
 export default function HostView() {
   const [roomCode, setRoomCode] = useState('');
@@ -39,6 +38,11 @@ export default function HostView() {
     });
   }
 
+  const onVideoEnd = () => {
+    console.log('Video ended');
+    skipSong();
+  }
+
   if (!roomCode) {
     return <p>Creating your room...</p>;
   }
@@ -47,16 +51,17 @@ export default function HostView() {
     <div>
       <h2>Room Code: {roomCode}</h2>
       {currentVideoId ? (
-        <div>
-          <iframe
-            width="560"
-            height="315"
-            src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1`}
-            title="YouTube video player"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
-        </div>
+        <YouTube
+          videoId={currentVideoId}
+          opts={{
+            width:'560',
+            height:'315',
+            playerVars: {
+              autoplay: 1,
+            }
+          }}
+          onEnd={onVideoEnd}
+        />
       ) : (
         <div>
           <p>No video playing.</p>
