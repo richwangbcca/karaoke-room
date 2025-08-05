@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
-import YouTube from 'react-youtube'
+import YouTube, { YouTubePlayer, YouTubeEvent } from 'react-youtube'
 
 export default function HostView() {
   const [roomCode, setRoomCode] = useState('');
@@ -30,7 +30,14 @@ export default function HostView() {
     };
   }, []);
 
+  const playerRef = useRef<YouTubePlayer | null>(null);
+
+  const onPlayerReady = (event: YouTubeEvent) => {
+    playerRef.current = event.target;
+  };
+
   const skipSong = () => {
+    console.log("skipping")
     socket.emit('host:skipSong', { code: roomCode }, (res: any) => {
       if (res.error){
         alert(res.error);
@@ -48,20 +55,22 @@ export default function HostView() {
   }
 
   return (
-    <div>
+    <div className="host-view">
       <h2>Room Code: {roomCode}</h2>
       {currentVideoId ? (
-        <YouTube
-          videoId={currentVideoId}
-          opts={{
-            width:'560',
-            height:'315',
-            playerVars: {
-              autoplay: 1,
-            }
-          }}
-          onEnd={onVideoEnd}
-        />
+        <div className="video-background">
+          <YouTube
+            videoId={currentVideoId ?? undefined}
+            onReady={onPlayerReady}
+            opts={{
+              playerVars: {
+                autoplay: 1,
+                controls: 1
+              }
+            }}
+            onEnd={onVideoEnd}
+          />
+        </div>
       ) : (
         <div>
           <p>No video playing.</p>

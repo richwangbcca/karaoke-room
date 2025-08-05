@@ -33,3 +33,23 @@
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
+.video-background {
+  position: fixed;
+  top: 0;
+  left: 5vw;
+  z-index: -1; /* Push behind other UI */
+  width: 90vw;
+  height: 90vh;
+  overflow: hidden;
+  
+}
+
+.video-background iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100%;
+  min-height: 100%;
+}
