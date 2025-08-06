@@ -34,18 +34,29 @@
   transition: border-color 0.25s;
 }
 
-.video-background {
+/* HostView */
+
+.theater {
+  display: flex;
+  flex-direction: column;
   position: fixed;
-  top: 0;
+  top: 2vh;
   left: 5vw;
   z-index: -1;
   width: 90vw;
   height: 90vh;
   overflow: hidden;
-  
+  text-align: center;
+  justify-content: center;
+  background-color: #0e0e0e;
 }
 
-.video-background iframe {
+.theater p {
+  font-size: 25px;
+  margin: 0.25rem auto;
+}
+
+.theater iframe {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -53,6 +64,66 @@
   min-width: 100%;
   min-height: 100%;
 }
+
+.footer {
+  width: 100vw;
+  padding: 0 5vw;
+  height: 5vw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(#08002b, #28243c);
+}
+
+.num-users {
+  font-size: 1.5rem;
+  text-align: left;
+  width: 20%;
+  padding-left: 3%;
+  margin-top: 0.75rem;
+}
+
+.room-info {
+  text-align: center;
+  margin: 0.75rem auto;
+}
+
+.room-info h2, 
+.room-info p {
+  margin: 0;
+}
+
+.room-info h2 {
+  font-size: 1.5rem;
+}
+
+.queue-info {
+  height: 100%;
+  font-size: 0.8rem;
+  width: 20%;
+  text-align: center;
+}
+
+.queue-info h2 {
+  height: 35%;
+  margin-bottom: 0.25rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.queue-info button {
+  display: block;
+  margin: auto;
+  margin-top: 0;
+}
+
+/* UserView */
 
 .lobby {
   display: flex;
@@ -81,7 +152,6 @@
   border: 1px solid grey;
   border-radius: 4px;
 }
-
 
 .lobby button {
   display: block;

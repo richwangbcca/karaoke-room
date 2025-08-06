@@ -6,6 +6,7 @@ export default function HostView() {
   const [roomCode, setRoomCode] = useState('');
   const [queue, setQueue] = useState<any[]>([]);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [nextSongTitle, setNextSongTitle] = useState("None");
 
   // Establish room code and initiate queue
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function HostView() {
         socket.on('queue:update', (newQueue) => {
           setQueue(newQueue);
           setCurrentVideoId(newQueue[0]?.videoId ?? null);
+          setNextSongTitle(newQueue[1]?.title ?? "None");
         });
       }
     });
@@ -56,9 +58,8 @@ export default function HostView() {
 
   return (
     <div className="host-view">
-      <h2>Room Code: {roomCode}</h2>
       {currentVideoId ? (
-        <div className="video-background">
+        <div className="theater">
           <YouTube
             videoId={currentVideoId ?? undefined}
             onReady={onPlayerReady}
@@ -72,22 +73,25 @@ export default function HostView() {
           />
         </div>
       ) : (
-        <div>
+        <div className="theater">
           <p>No video playing.</p>
           <p>Maybe some ABBA? Taylor Swift?</p>
         </div>
       )}
+      <div className="footer">
+        <h2 className="num-users">👤 0</h2>
 
-      <button onClick={skipSong}>Skip Song</button>
+        <div className="room-info">
+          <h2 className="room-code">Room Code: {roomCode}</h2>
+          <p>Join at placeholder.com</p>
+        </div>
 
-      <h3>Global Queue</h3>
-      <ul>
-        {queue.map((q, i) => (
-          <li key={q.id}>
-            {i === 0 ? <strong>{q.title} (Now)</strong> : q.title} — {q.name}
-          </li>
-        ))}
-      </ul>
+        <div className="queue-info">
+          <h2>Next Song: {nextSongTitle.slice(0, 30)}</h2>
+          <button onClick={skipSong}>Skip Current Song</button>
+        </div>
+
+      </div>
     </div>
   );
 }
