@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 
 import { Song } from './structures'
-import { createRoom, joinRoom, getRoom } from './roomManager'
+import { createRoom, joinRoom, leaveRoom, getRoom } from './roomManager'
 import { addSong, skipSong } from './queueManager'
 import { youtubeRouter } from './api/youtube';
 
@@ -20,6 +20,9 @@ const io = new Server(httpServer, {
         origin: '*'
     },
 });
+
+const socketRoomMap = new Map();
+const socketUserIdMap = new Map();
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
@@ -59,6 +62,14 @@ io.on('connection', (socket) => {
         }
 
         socket.join(code);
+
+        const room = getRoom(code);
+        if(!room) return;
+
+        socketRoomMap.set(socket.id, code);
+        socketUserIdMap.set(socket.id, id);
+
+        io.to(code).emit('room:update', room.userNames);
         console.log(`${name} joined room ${code}`);
 
         callback({ success: true, userId: id });
@@ -88,6 +99,20 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+
+        const code = socketRoomMap.get(socket.id);
+        const userId = socketUserIdMap.get(socket.id);
+
+        socketRoomMap.delete(socket.id);
+        socketUserIdMap.delete(socket.id);
+
+        const room = getRoom(code);
+
+        if(room) {
+            leaveRoom(code, userId);
+            const updatedRoom = getRoom(code);
+            io.to(code).emit('room:update', updatedRoom?.userNames);
+        }
     });
 });
 

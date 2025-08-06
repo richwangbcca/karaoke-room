@@ -16,5 +16,6 @@ export type Room = {
     code: string;
     hostId: string;
     users: Map<string, User>;
+    userNames: string[];
     queue: Song[];
 }

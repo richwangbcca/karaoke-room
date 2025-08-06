@@ -7,8 +7,8 @@ export default function HostView() {
   const [queue, setQueue] = useState<any[]>([]);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const [nextSongTitle, setNextSongTitle] = useState("None");
+  const [members, setMembers] = useState<string[]>([]);
 
-  // Establish room code and initiate queue
   useEffect(() => {
     socket.connect();
 
@@ -23,6 +23,10 @@ export default function HostView() {
           setCurrentVideoId(newQueue[0]?.videoId ?? null);
           setNextSongTitle(newQueue[1]?.title ?? "None");
         });
+
+        socket.on('room:update', (userList) => {
+          setMembers(userList);
+        })
       }
     });
 
@@ -79,7 +83,7 @@ export default function HostView() {
         </div>
       )}
       <div className="footer">
-        <h2 className="num-users">👤 0</h2>
+        <h2 className="num-users">👤 {members.length}</h2>
 
         <div className="room-info">
           <h2 className="room-code">Room Code: {roomCode}</h2>
