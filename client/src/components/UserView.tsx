@@ -10,6 +10,7 @@ export default function UserView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     socket.on('queue:update', (queue) => {
@@ -27,8 +28,10 @@ export default function UserView() {
   };
 
   const search = async () => {
+    setLoading(true);
     const res = await axios.get(`/api/youtube/search?q=${encodeURIComponent(searchTerm + " karaoke")}`);
     setResults(res.data);
+    setLoading(false);
   };
 
   const addSong = (videoId: string, title: string) => {
@@ -65,13 +68,17 @@ export default function UserView() {
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
         <button onClick={search}>Search</button>
       </div>
-      <ul>
-        {results.map((r) => (
-          <li key={r.videoId}>
-            {r.title} <button onClick={() => addSong(r.videoId, r.title)}>Add</button>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <div className="spinner"></div>
+      ) : (
+        <ul>
+          {results.map((r) => (
+            <li key={r.videoId}>
+              {r.title} <button onClick={() => addSong(r.videoId, r.title)}>Add</button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h3>Your Queue</h3>
       <ul>

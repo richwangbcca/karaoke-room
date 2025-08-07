@@ -110,8 +110,8 @@ io.on('connection', (socket) => {
 
         if(room) {
             leaveRoom(code, userId);
-            const updatedRoom = getRoom(code);
-            io.to(code).emit('room:update', updatedRoom?.userNames);
+            io.to(code).emit('room:update', room.userNames);
+            io.to(code).emit('queue:update', room.queue);
         }
     });
 });
