@@ -18,6 +18,13 @@ const io = new Server(httpServer, {
     cors: { origin: '*' },
 });
 
+app.get('/api/rooms/:roomCode', (req, res) => {
+  const roomCode = req.params.roomCode.toUpperCase();
+  if (rooms.has(roomCode)) {
+    return res.status(200).json({ exists: true });
+  }
+  res.status(404).json({ error: 'Room not found' });
+});
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);

@@ -2,31 +2,36 @@ import { useState, useEffect } from 'react';
 import socket from '../socket';
 import axios from 'axios';
 
-export default function UserView() {
+export type UserViewProps = { userName: string; code: string };
+
+export default function UserView({ userName, code }: UserViewProps) {
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [userId, setUserId] = useState('');
-  const [joined, setJoined] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setName(userName);
+    setRoomCode(code.toUpperCase());
+  }, [userName, code]);
+
+  useEffect(() => {
+    if (!name || !roomCode) return ;
+    socket.connect();
+    console.log("Joining room with name and code:", name, roomCode);
+    socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
+      if (res.error) return alert(res.error);
+      setUserId(res.userId);
+    });
+
     socket.on('queue:update', (queue) => {
       setQueue(queue);
       console.log("queue:", queue, "type:", typeof queue, "isArray:", Array.isArray(queue));
     });
-  }, []);
-
-  const joinRoom = () => {
-    socket.connect();
-    socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
-      if (res.error) return alert(res.error);
-      setUserId(res.userId);
-      setJoined(true);
-    });
-  };
+  }, [name, roomCode]);
 
   const search = async () => {
     setLoading(true);
@@ -47,22 +52,6 @@ export default function UserView() {
     });
     console.log("user:addSong success");
   };
-
-  if (!joined) {
-    return (
-      <div className="lobby">
-        <div className="input-box">
-          <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="input-box">
-          <label>Room Code</label>
-          <input value={roomCode.toUpperCase()} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} />
-        </div>
-        <button onClick={joinRoom}>Join Room</button>
-      </div>
-    );
-  }
 
   return (
     <div>
