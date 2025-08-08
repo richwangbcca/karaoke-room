@@ -64,9 +64,10 @@ function App() {
           {error && <p style={{ color: 'red', marginTop: 4 }}>{error}</p>}
           <button onClick={() => joinRoom()}>Join Room</button>
         </div>
-
-        <label>Or, if you're a host,</label>
-        <button onClick={() => setRole('host')}>Create a Room</button>
+        <div className="host-div">
+          <h2>If you're a host</h2>
+          <button onClick={() => setRole('host')}>Create a Room</button>
+        </div>
         <p>Made by @richwangbcca</p>
       </div>
     );
