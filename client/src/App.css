@@ -76,11 +76,20 @@
 .current .song {
   position: fixed;
   left: 5vw;
+  width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .current .singer {
   position: fixed;
   right: 5vw;
+  width: 40%;
+  text-align: right;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 
@@ -138,6 +147,7 @@
 
 .num-users h2 {
   margin-left: 10%;
+  min-width: 50%;
 }
 
 .room-info {

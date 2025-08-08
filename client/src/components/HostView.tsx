@@ -68,7 +68,7 @@ export default function HostView() {
   return (
     <div className="host-view">
       <div className="current">
-        <h2 className="song">{currentSong ? "Now playing: " : ""}{currentSong.slice(0, 40)}</h2>
+        <h2 className="song">{currentSong ? "Now playing: " : ""}{currentSong}</h2>
         <h2 className="singer">{currentSinger ? "Requested by: " : ""}{currentSinger}</h2>
       </div>
       {currentVideoId ? (
@@ -102,7 +102,7 @@ export default function HostView() {
         </div>
 
         <div className="queue-info">
-          <h2>Next Song: {nextSongTitle.slice(0, 30)}</h2>
+          <h2>Next Song: {nextSongTitle}</h2>
           <button onClick={skipSong}>Skip Current Song</button>
         </div>
 
