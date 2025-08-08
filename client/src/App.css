@@ -36,15 +36,33 @@
 
 /* HostView */
 
+.current {
+  position: fixed;
+  top: 0;
+  font-size: 1rem;
+  display: flex;
+}
+
+.current .song {
+  position: fixed;
+  left: 5vw;
+}
+
+.current .singer {
+  position: fixed;
+  right: 5vw;
+}
+
+
 .theater {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 2vh;
+  top: 7vh;
   left: 5vw;
   z-index: -1;
   width: 90vw;
-  height: 90vh;
+  height: 84vh;
   overflow: hidden;
   text-align: center;
   justify-content: center;
@@ -68,7 +86,7 @@
 .footer {
   width: 100vw;
   padding: 0 5vw;
-  height: 5vw;
+  height: 10vh;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -80,11 +98,16 @@
 }
 
 .num-users {
-  font-size: 1.5rem;
-  text-align: left;
+  font-size: 2rem;
   width: 20%;
-  padding-left: 3%;
-  margin-top: 0.75rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.num-users h2 {
+  margin-left: 10%;
 }
 
 .room-info {
@@ -102,25 +125,31 @@
 }
 
 .queue-info {
-  height: 100%;
   font-size: 0.8rem;
   width: 20%;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .queue-info h2 {
-  height: 35%;
-  margin-bottom: 0.25rem;
-  margin-top: 0.75rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  margin: 0;
 }
 
 .queue-info button {
   display: block;
   margin: auto;
-  margin-top: 0;
+  border: 1px solid transparent;
+  padding: 0.5rem;
+  background-color: #1a1a1a;
+  transition: border-color 0.25s;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 0.5rem;
 }
 
 /* UserView */

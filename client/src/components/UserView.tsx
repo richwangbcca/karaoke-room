@@ -15,12 +15,13 @@ export default function UserView() {
   useEffect(() => {
     socket.on('queue:update', (queue) => {
       setQueue(queue);
+      console.log("queue:", queue, "type:", typeof queue, "isArray:", Array.isArray(queue));
     });
   }, []);
 
   const joinRoom = () => {
     socket.connect();
-    socket.emit('user:joinRoom', { name, code: roomCode }, (res: any) => {
+    socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
       if (res.error) return alert(res.error);
       setUserId(res.userId);
       setJoined(true);
@@ -35,6 +36,7 @@ export default function UserView() {
   };
 
   const addSong = (videoId: string, title: string) => {
+    console.log("emitting user:addSong");
     socket.emit('user:addSong', {
       code: roomCode,
       userId,
@@ -43,6 +45,7 @@ export default function UserView() {
     }, (resp: any) => {
       if (resp.error) alert(resp.error);
     });
+    console.log("user:addSong success");
   };
 
   if (!joined) {

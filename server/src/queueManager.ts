@@ -1,29 +1,58 @@
-import { Song } from './structures'
-import { rooms } from './roomManager'
+import { v4 as uuidv4 } from 'uuid';
 
-export function addSong(code: string, userId: string, song: Song): boolean {
-    const room = rooms.get(code);
-    if (!room) return false;
+export class Queue {
+    queue: Song[];
+    length: number;
 
-    const user = room.users.get(userId);
-    if (!user) return false;
-    user.queue.push(song);
-    room.queue.push(song);
-    return true;
+    constructor() {
+        this.queue = [];
+        this.length = 0;
+    }
+
+    addSong(song: Song): boolean {
+        this.queue.push(song);
+        this.length += 1;
+        return true;
+    }
+
+    skipSong(): Song | null {
+        if (this.queue.length === 0) return null;
+        const song = this.queue[0];
+
+        this.queue.shift();
+        this.length -= 1;
+
+        return song;
+    }
+
+    removeSong(song: Song): boolean {
+        return true;
+    }
+
+    removeUser(userId: string): boolean {
+        for (let i = this.queue.length - 1; i >= 1; i--) {
+            if (this.queue[i].requestedBy === userId) {
+                this.queue.splice(i, 1);
+                this.length -= 1;
+            }
+        }
+
+        return true;
+    }
 }
 
-export function skipSong(code: string): boolean {
-    const room = rooms.get(code);
-    if (!room) return false;
+export class Song {
+    id: string;
+    title: string;
+    videoId: string;
+    requestedBy: string;
+    singer: string;
 
-    const curQueue = room.queue;
-    if (!curQueue || curQueue.length === 0) return false; 
-
-    const user = room.users.get(curQueue[0].requestedBy);
-    if (!user) return false;
-
-    room.queue.shift();
-    user.queue.shift();
-
-    return true;
+    constructor(title: string, videoId: string, requestedBy: string, singer: string) {
+        this.id = uuidv4();
+        this.title = title;
+        this.videoId = videoId;
+        this.requestedBy = requestedBy;
+        this.singer = singer;
+    }
 }

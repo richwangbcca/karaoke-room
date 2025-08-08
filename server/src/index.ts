@@ -4,9 +4,8 @@ import { Server } from 'socket.io';     // core Socket.IO server instance
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 
-import { Song } from './structures'
-import { createRoom, joinRoom, leaveRoom, getRoom } from './roomManager'
-import { addSong, skipSong } from './queueManager'
+import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager'
+import { Song } from './queueManager'
 import { youtubeRouter } from './api/youtube';
 
 dotenv.config();
@@ -16,46 +15,41 @@ app.use('/api/youtube', youtubeRouter);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-    cors: {
-        origin: '*'
-    },
+    cors: { origin: '*' },
 });
 
-const socketRoomMap = new Map();
-const socketUserIdMap = new Map();
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
     socket.on('host:createRoom', (_, callback) => {
-        const code = createRoom(socket.id);
-        console.log(`User ${socket.id} created a room: ${code}`);
+        const room = new Room(socket.id);
+        const code = room.code;
+        rooms.set(code, room);
 
+        console.log(`User ${socket.id} created a room: ${code}`);
         socket.join(code);
 
         callback({ code });
     });
 
     socket.on('host:skipSong', ({ code }, callback) => {
-        const success = skipSong(code);
-        if(!success) return;
-
-        const room = getRoom(code);
+        const room = rooms.get(code);
         if(!room) return;
 
-        io.to(code).emit('queue:update', room.queue);
+        const success = room.skipSong();
+        if(!success) return;
+
+        io.to(code).emit('queue:update', room.getQueue());
         callback({ success: true });
     })
 
     socket.on('user:joinRoom', ({ code, name }, callback) => {
-        const id = uuidv4();
-        const success = joinRoom(code, {
-            id,
-            name,
-            socketId: socket.id,
-            queue: [],
-        });
+        const room = rooms.get(code);
+        if(!room) return;
         
+        const user = new User(name, socket.id);
+        const success = room.addUser(user);
         if (!success) {
             callback({ error: 'Room not found'});
             return;
@@ -63,37 +57,38 @@ io.on('connection', (socket) => {
 
         socket.join(code);
 
-        const room = getRoom(code);
-        if(!room) return;
-
         socketRoomMap.set(socket.id, code);
-        socketUserIdMap.set(socket.id, id);
+        socketUserIdMap.set(socket.id, user.id);
 
         io.to(code).emit('room:update', room.userNames);
         console.log(`${name} joined room ${code}`);
 
-        callback({ success: true, userId: id });
+        callback({ success: true, userId: user.id });
         }
     );
 
     socket.on('user:addSong', ({ code, userId, title, videoId }, callback) => {
+        const room = rooms.get(code);
+        if(!room) return;
+
+        const user = room.users.get(userId);
+        if(!user) return;
+
         const song: Song = {
             id: uuidv4(),
             title,
             videoId,
             requestedBy: userId,
+            singer: user.name
         };
-        const success = addSong(code, userId, song);
 
+        const success = user.addSong(song);
         if (!success) {
             callback({ error: "Invalid room or user" });
             return;
         }
 
-        const room = getRoom(code);
-        if(!room) return;
-
-        io.to(code).emit('queue:update', room.queue);
+        io.to(code).emit('queue:update', room.getQueue());
         callback({ success: true });
     })
 
@@ -106,12 +101,13 @@ io.on('connection', (socket) => {
         socketRoomMap.delete(socket.id);
         socketUserIdMap.delete(socket.id);
 
-        const room = getRoom(code);
+        if(!code) return;
+        const room = rooms.get(code);
 
-        if(room) {
-            leaveRoom(code, userId);
+        if(room && userId) {
+            room.removeUser(userId);
             io.to(code).emit('room:update', room.userNames);
-            io.to(code).emit('queue:update', room.queue);
+            io.to(code).emit('queue:update', room.getQueue());
         }
     });
 });

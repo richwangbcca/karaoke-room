@@ -6,6 +6,8 @@ export default function HostView() {
   const [roomCode, setRoomCode] = useState('');
   const [queue, setQueue] = useState<any[]>([]);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [currentSong, setCurrentSong] = useState('');
+  const [currentSinger, setCurrentSinger] = useState('');
   const [nextSongTitle, setNextSongTitle] = useState("None");
   const [members, setMembers] = useState<string[]>([]);
 
@@ -20,7 +22,10 @@ export default function HostView() {
         
         socket.on('queue:update', (newQueue) => {
           setQueue(newQueue);
+          console.log(newQueue[0]);
           setCurrentVideoId(newQueue[0]?.videoId ?? null);
+          setCurrentSong(newQueue[0]?.title ?? "");
+          setCurrentSinger(newQueue[0]?.singer ?? "");
           setNextSongTitle(newQueue[1]?.title ?? "None");
         });
 
@@ -62,6 +67,10 @@ export default function HostView() {
 
   return (
     <div className="host-view">
+      <div className="current">
+        <h2 className="song">{currentSong ? "Now playing: " : ""}{currentSong.slice(0, 40)}</h2>
+        <h2 className="singer">{currentSinger ? "Requested by: " : ""}{currentSinger}</h2>
+      </div>
       {currentVideoId ? (
         <div className="theater">
           <YouTube
@@ -83,7 +92,9 @@ export default function HostView() {
         </div>
       )}
       <div className="footer">
-        <h2 className="num-users">👤 {members.length}</h2>
+        <div className="num-users">
+          <h2 className="num-users">👤 {members.length}</h2>
+        </div>
 
         <div className="room-info">
           <h2 className="room-code">Room Code: {roomCode}</h2>
