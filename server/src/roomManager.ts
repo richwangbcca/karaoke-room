@@ -95,5 +95,9 @@ export class User {
 
 function generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789';
-    return Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    let code = Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    while(rooms.has(code)) {
+        code = Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    }
+    return code;
 }

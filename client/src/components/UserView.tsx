@@ -21,7 +21,6 @@ export default function UserView({ userName, code }: UserViewProps) {
   useEffect(() => {
     if (!name || !roomCode) return ;
     socket.connect();
-    console.log("Joining room with name and code:", name, roomCode);
     socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
       if (res.error) return alert(res.error);
       setUserId(res.userId);
@@ -29,19 +28,17 @@ export default function UserView({ userName, code }: UserViewProps) {
 
     socket.on('queue:update', (queue) => {
       setQueue(queue);
-      console.log("queue:", queue, "type:", typeof queue, "isArray:", Array.isArray(queue));
     });
   }, [name, roomCode]);
 
   const search = async () => {
     setLoading(true);
-    const res = await axios.get(`/api/youtube/search?q=${encodeURIComponent(searchTerm + " karaoke")}`);
+    const res = await axios.get(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
     setResults(res.data);
     setLoading(false);
   };
 
   const addSong = (videoId: string, title: string) => {
-    console.log("emitting user:addSong");
     socket.emit('user:addSong', {
       code: roomCode,
       userId,
@@ -50,7 +47,6 @@ export default function UserView({ userName, code }: UserViewProps) {
     }, (resp: any) => {
       if (resp.error) alert(resp.error);
     });
-    console.log("user:addSong success");
   };
 
   return (

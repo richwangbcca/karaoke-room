@@ -54,15 +54,19 @@
   display: block;
   text-align: center;
   width: 18.75rem;
-  font-size: 1.6rem;
+  font-size: 1rem;
   padding: 0.7em 1.2em;
   border-radius: 1rem;
   border: 1px solid transparent;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background: #1C2541;
   cursor: pointer;
   transition: border-color 0.25s;
+}
+
+.home button:hover {
+  background: #445ba0;
 }
 
 .host-div {
@@ -83,7 +87,8 @@
 .current {
   position: fixed;
   top: 0;
-  font-size: 1rem;
+  font-size: 0.8rem;
+  border: 1px solid red;
   display: flex;
 }
 
@@ -111,11 +116,11 @@
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 7vh;
+  top: 4vh;
   left: 5vw;
   z-index: -1;
   width: 90vw;
-  height: 84vh;
+  height: 89vh;
   overflow: hidden;
   text-align: center;
   justify-content: center;
@@ -139,7 +144,7 @@
 .footer {
   width: 100vw;
   padding: 0 5vw;
-  height: 10vh;
+  height: 7vh;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -198,12 +203,17 @@
   display: block;
   margin: auto;
   border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: #1C2541;
   padding: 0.5rem;
-  background-color: #1a1a1a;
   transition: border-color 0.25s;
   cursor: pointer;
   font-family: inherit;
+  font-weight: 600;
   margin-top: 0.5rem;
+}
+.queue-info button:hover {
+  background: #445ba0;
 }
 
 /* UserView */
