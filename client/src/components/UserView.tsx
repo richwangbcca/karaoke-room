@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import socket from '../socket';
-import axios from 'axios';
 
 export type UserViewProps = { userName: string; code: string };
 
@@ -33,8 +32,13 @@ export default function UserView({ userName, code }: UserViewProps) {
 
   const search = async () => {
     setLoading(true);
-    const res = await axios.get(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
-    setResults(res.data);
+    const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
+    if (!res.ok) {
+      console.warn(`Fetch error: ${res.status}`);
+    } 
+    const data = await res.json();
+
+    setResults(data);
     setLoading(false);
   };
 
