@@ -1,7 +1,6 @@
 # Karaoke Room
 ## Join a room, add your songs, and sing together
 A browser-based, real-time karaoke experience. One person hosts a room, everyone else joins from their devices, and the music flows without the hassle of YouTube searches, manual queues, or expensive karaoke machines. Songs are searched via Spotify for accuracy, then autoplayed as high-quality karaoke videos from YouTube on the host's screen.
-<img width="1348" height="762" alt="image" src="https://github.com/user-attachments/assets/63878dfa-f9dc-4968-94c3-97efe9b0a8f1" />
 <img width="3400" height="1382" alt="image" src="https://github.com/user-attachments/assets/40ccc9c3-920a-4ef8-9c08-df62fcb91173" />
 
 
