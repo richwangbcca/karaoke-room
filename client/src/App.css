@@ -50,11 +50,17 @@
   text-transform: uppercase;
 }
 
+.home .error {
+  color: red;
+  margin-top: 0;
+}
+
 .home button {
   display: block;
   text-align: center;
   width: 18.75rem;
   font-size: 1rem;
+  margin: 0 auto;
   padding: 0.7em 1.2em;
   border-radius: 1rem;
   border: 1px solid transparent;

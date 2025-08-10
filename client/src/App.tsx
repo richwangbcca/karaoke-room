@@ -1,16 +1,12 @@
 import { useState } from 'react';
-import axios from 'axios';
 import UserView from './components/UserView';
 import HostView from './components/HostView';
 
 async function validateRoom(roomCode: string): Promise<boolean> {
   try {
-    const response = await axios.get(`/api/rooms/${roomCode.toUpperCase()}`);
-    return response.status === 200;
+    const response = await fetch(`/api/rooms/${roomCode.toUpperCase()}`);
+    return response.ok;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return false;
-    }
     console.error('Unexpected error during room check:', error);
     return false;
   }
@@ -21,11 +17,8 @@ function App() {
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const joinRoom = async () => {
-    setError(null);
-
     if (!name.trim()) {
       setError("Please enter a name.");
       return;
@@ -35,9 +28,7 @@ function App() {
       return;
     }
 
-    setLoading(true);
     const roomExists = await validateRoom(roomCode);
-    setLoading(false);
 
     if(!roomExists) {
       setError("Room not found");
@@ -61,9 +52,9 @@ function App() {
             <label>Room Code</label>
             <input placeholder="ROOM CODE" className="code-input" maxLength={5} value={roomCode} onChange={(e) => setRoomCode(e.target.value)} />
           </div>
-          {error && <p style={{ color: 'red', marginTop: 4 }}>{error}</p>}
-          <button onClick={() => joinRoom()}>Join Room</button>
         </div>
+          {error && <p className="error">{error}</p>}
+          <button onClick={() => joinRoom()}>Join Room</button>
         <div className="host-div">
           <h2>If you're a host</h2>
           <button onClick={() => setRole('host')}>Create a Room</button>
