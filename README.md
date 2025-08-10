@@ -1,9 +1,12 @@
 # Karaoke Room
 ## Join a room, add your songs, and sing together
 A browser-based, real-time karaoke experience. One person hosts a room, everyone else joins from their devices, and the music flows without the hassle of YouTube searches, manual queues, or expensive karaoke machines. Songs are searched via Spotify for accuracy, then autoplayed as high-quality karaoke videos from YouTube on the host's screen.
+<img width="1348" height="762" alt="image" src="https://github.com/user-attachments/assets/63878dfa-f9dc-4968-94c3-97efe9b0a8f1" />
+<img width="3400" height="1382" alt="image" src="https://github.com/user-attachments/assets/40ccc9c3-920a-4ef8-9c08-df62fcb91173" />
+
 
 ## About the Project
-I was once tasked with running karaoke at a party since I had my computer out working on a paper. Having to work on the paper while people yelled out songs at me and looking up YouTube videos was overwhelming, and though that was part of the fun, I was sure there had to be a smoother way to do it. Inspired by Kahoot!, Jackbox games, and StreamLab's media share, *Karaoke Room* is my solution: a web app that handles the searching, queuing, and playing so everyone can focus on the fun.
+This idea came from a party where I ended up running karaoke while trying to finish a paper on my laptop. Between writing paragraphs and searching YouTube for each shouted song request, I realized there had to be a smoother way. Inspired by Kahoot!, Jackbox Games, and Streamlabs’ media share, Karaoke Room automates the searching, queuing, and playing so everyone can focus on singing.
 
 ## Features
 Hosts create a room and receive a unique code. Guests then join via this code from their devices. They can search for songs, add them to the queue, and karaoke videos autoplay on the host's screen. Users can manage their personal queue and hosts can manage the global queue and room membership.
