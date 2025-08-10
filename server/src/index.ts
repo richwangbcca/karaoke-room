@@ -2,13 +2,11 @@ import express from 'express';          // HTTP web framework
 import { createServer } from 'http';    // turns Express app to raw HTTP server
 import { Server } from 'socket.io';     // core Socket.IO server instance
 import { v4 as uuidv4 } from 'uuid';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 
 import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager'
 import { Song } from './queueManager'
 import { youtubeRouter } from './api/youtube';
-
-dotenv.config();
 
 const app = express();
 app.use('/api/youtube', youtubeRouter);
