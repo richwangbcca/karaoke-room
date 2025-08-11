@@ -20,7 +20,6 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 - Concurrent sessions: Multiple rooms can run at the same time without interference.
 
 ### Planned Features/Developer TODO
-- UI for Spotify search bar
 - Randomize messages when no songs are playing
 - "Leave Room" button for users
 - "Kick User" and "Close Room" controls for hosts

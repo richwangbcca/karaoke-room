@@ -330,18 +330,16 @@ ul {
   cursor: pointer;
 }
 
-
 .search-result button:hover {
   cursor: pointer;
 
 }
 
-
 @media (max-width: 600px) {
   .search-bar {
     width: 100%;
   }
-  
+
   .search-result {
     width: 85vw;
     max-width: none;
