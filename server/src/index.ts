@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
         }
     );
 
-    socket.on('user:addSong', ({ code, userId, title, videoId }, callback) => {
+    socket.on('user:addSong', ({ code, userId, title, artists, videoId, albumImage }, callback) => {
         const room = rooms.get(code);
         if(!room) return;
 
@@ -84,9 +84,11 @@ io.on('connection', (socket) => {
         const song: Song = {
             id: uuidv4(),
             title,
+            artists,
             videoId,
             requestedBy: userId,
-            singer: user.name
+            singer: user.name,
+            albumImage
         };
 
         const success = user.addSong(song);

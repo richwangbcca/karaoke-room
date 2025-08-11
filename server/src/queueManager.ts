@@ -44,15 +44,19 @@ export class Queue {
 export class Song {
     id: string;
     title: string;
+    artists: string[];
     videoId: string;
     requestedBy: string;
     singer: string;
+    albumImage: string;
 
-    constructor(title: string, videoId: string, requestedBy: string, singer: string) {
+    constructor(title: string, artists: string[], videoId: string, requestedBy: string, singer: string, albumImage: string) {
         this.id = uuidv4();
         this.title = title;
+        this.artists = artists,
         this.videoId = videoId;
         this.requestedBy = requestedBy;
         this.singer = singer;
+        this.albumImage = albumImage;
     }
 }

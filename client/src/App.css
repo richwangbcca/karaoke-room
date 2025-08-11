@@ -269,7 +269,7 @@
   animation: spin 1s linear infinite;
 }
 
-.search-result {
+.song-card {
   background: #1C2541;
   border-radius: 0.75rem;
   padding: 1rem;
@@ -285,37 +285,37 @@ ul {
   padding: 0;
 }
 
-.search-result img {
+.song-card img {
   max-height: 5vh;
   border: 1px solid black;
   flex-shrink: 0;
 }
 
-.search-result .track-text {
+.song-card .track-text {
   margin: 0 1rem;
   min-width: 0;
   flex: 1;
 }
 
-.search-result .track-name,
-.search-result .artists {
+.song-card .track-name,
+.song-card .artists {
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.search-result .track-name {
+.song-card .track-name {
   font-size: 1.5rem;
   font-weight: 600;
 }
 
-.search-result .artists {
+.song-card .artists {
   font-size: 0.75rem;
   margin-top: 0.1rem;
 }
 
-.search-result button {
+.song-card button {
   margin-left: auto;
   height: 50%;
   aspect-ratio: 1 / 1;
@@ -330,7 +330,7 @@ ul {
   cursor: pointer;
 }
 
-.search-result button:hover {
+.song-card button:hover {
   cursor: pointer;
 
 }
@@ -340,7 +340,7 @@ ul {
     width: 100%;
   }
 
-  .search-result {
+  .song-card {
     width: 85vw;
     max-width: none;
   }

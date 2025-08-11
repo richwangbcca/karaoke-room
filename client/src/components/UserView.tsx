@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Minus, Search } from 'lucide-react';
 import socket from '../socket';
 
 export type UserViewProps = { userName: string; code: string };
@@ -43,44 +43,51 @@ export default function UserView({ userName, code }: UserViewProps) {
     setLoading(false);
   };
 
-  const addSong = async(title: string, artist: string) => {
-    const searchTerm = `${title} ${artist} karaoke`;
+  const addSong = async(title: string, artists: string, albumImage: string) => {
+    const searchTerm = `${title} ${artists[0]} karaoke original key`;
     const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
       console.warn(`Fetch error: ${res.status}`);
     } 
     const data = await res.json();
-    console.log(data);
 
     socket.emit('user:addSong', {
       code: roomCode,
       userId,
-      title: `${title}- ${artist}`,
-      videoId: data[0].videoId
+      title: title,
+      artists: artists,
+      videoId: data[0].videoId,
+      albumImage,
     }, (resp: any) => {
       if (resp.error) alert(resp.error);
     });
+    setResults([]);
+    setSearchTerm("");
   };
+
+  const removeSong = async() => {
+    return;
+  }
 
   return (
     <div>
       <h2>What do you want to sing, {name}?</h2>
-      <div className="search-bar">
+      <form action={search} className="search-bar">
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
         <button onClick={search}><Search size={24}/></button>
-      </div>
+      </form>
       {loading ? (
         <div className="spinner"></div>
       ) : (
         <ul>
           {results.map((r) => (
-            <li className="search-result" key={r.trackId}>
+            <li className="song-card" key={r.trackId}>
               <img className="album" src={r.albumImage}/>
               <div className="track-text">
                 <p className="track-name">{r.trackName}</p> 
                 <p className="artists">{r.artists.join(', ')}</p> 
               </div>
-              <button onClick={() => addSong(r.trackName, r.artists[0])}><Plus size={24}/></button>
+              <button onClick={() => addSong(r.trackName, r.artists, r.albumImage)}><Plus size={24}/></button>
             </li>
           ))}
         </ul>
@@ -89,7 +96,26 @@ export default function UserView({ userName, code }: UserViewProps) {
       <h3>Your Queue</h3>
       <ul>
         {queue.filter(q => q.requestedBy === userId).map((q) => (
-          <li key={q.id}>{q.title}</li>
+          <li className="song-card" key={q.id}>
+            <img className="album" src={q.albumImage}/>
+            <div className="track-text">
+              <p className="track-name">{q.title}</p> 
+              <p className="artists">{q.artists.join(', ')}</p> 
+            </div>
+            <button onClick={() => removeSong()}><Minus size={24}/></button>
+          </li>
+        ))}
+      </ul>
+      <h3>Global Queue</h3>
+      <ul>
+        {queue.map((q) => (
+          <li className="song-card" key={q.id}>
+            <img className="album" src={q.albumImage}/>
+            <div className="track-text">
+              <p className="track-name">{q.title}</p> 
+              <p className="artists">{q.artists.join(', ')}</p> 
+            </div>
+          </li>
         ))}
       </ul>
     </div>
