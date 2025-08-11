@@ -1,15 +1,17 @@
-import express from 'express';          // HTTP web framework
-import { createServer } from 'http';    // turns Express app to raw HTTP server
-import { Server } from 'socket.io';     // core Socket.IO server instance
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import 'dotenv/config';
 
 import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager'
 import { Song } from './queueManager'
 import { youtubeRouter } from './api/youtube';
+import { spotifyRouter } from './api/spotify';
 
 const app = express();
 app.use('/api/youtube', youtubeRouter);
+app.use('/api/spotify', spotifyRouter);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {

@@ -20,26 +20,26 @@
   margin-bottom: 3rem;
 }
 
-.form {
+.home .form {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.input-box {
+.home .input-box {
   display: flex;
   flex-direction: column;
   margin-bottom: 1.5rem;
   width: 300px;
 }
 
-.input-box label {
+.home .input-box label {
   text-align: left;
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
 
-.input-box input {
+.home .input-box input {
   padding: 0.75rem;
   font-size: 1rem;
   border: 0px;
@@ -75,7 +75,7 @@
   background: #445ba0;
 }
 
-.host-div {
+.home .host-div {
   height: 15vh;
   display: flex;
   flex-direction: column;
@@ -83,7 +83,7 @@
   align-items: center;
 }
 
-.host-div h2 {
+.home .host-div h2 {
   font-weight: 500;
   margin-bottom: 1rem;
 }
@@ -118,7 +118,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
 
 .theater {
   display: flex;
@@ -221,11 +220,44 @@
   margin-top: 0.25rem;
   font-size: 0.7rem;
 }
+
 .queue-info button:hover {
   background: #445ba0;
 }
 
 /* UserView */
+
+.search-bar {
+  text-align: center;
+  position: relative;
+  width: 60%;
+  margin: 0 auto;
+}
+.search-bar input {
+  width: 100%;
+  height: 2rem;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+  padding-right: 0;
+  border: 0px;
+  border-radius: 0.75rem;
+}
+
+.search-bar button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+}
 
 .spinner {
   margin: 20px 0;
@@ -235,6 +267,92 @@
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
+}
+
+.search-result {
+  background: #1C2541;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin: 0.5rem;
+  display: flex;
+  list-style: none;
+  align-items: center;
+  max-height: 5vh;
+  overflow: hidden;
+}
+
+ul {
+  padding: 0;
+}
+
+.search-result img {
+  max-height: 5vh;
+  border: 1px solid black;
+  flex-shrink: 0;
+}
+
+.search-result .track-text {
+  margin: 0 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-result .track-name,
+.search-result .artists {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result .track-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.search-result .artists {
+  font-size: 0.75rem;
+  margin-top: 0.1rem;
+}
+
+.search-result button {
+  margin-left: auto;
+  height: 50%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+
+.search-result button:hover {
+  cursor: pointer;
+
+}
+
+
+@media (max-width: 600px) {
+  .search-bar {
+    width: 100%;
+  }
+  
+  .search-result {
+    width: 85vw;
+    max-width: none;
+  }
+
+  ul {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center list items horizontally */
+  padding: 0;
+}
 }
 
 @keyframes spin {

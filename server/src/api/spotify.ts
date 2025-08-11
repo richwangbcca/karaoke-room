@@ -76,8 +76,9 @@ spotifyRouter.get('/search', async (req, res) => {
         const items = data?.tracks?.items ?? [];
 
         const results = items.map((track: any) => ({
+            trackId: track.id,
             trackName: track.name,
-            artists: (track.artists as { name: string }[]).map(a => a.name).join(', '),
+            artists: track.artists.map((artist: any) => artist.name),
             albumImage: track.album?.images?.[0]?.url ?? null,
         }));
 
