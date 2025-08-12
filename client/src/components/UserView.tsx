@@ -65,8 +65,10 @@ export default function UserView({ userName, code }: UserViewProps) {
     setSearchTerm("");
   };
 
-  const removeSong = async() => {
-    return;
+  const removeSong = async(songId: string) => {
+    socket.emit('user:removeSong', {code: roomCode, songId}, (resp: any) => {
+      if (resp.error) alert(resp.error);
+    });
   }
 
   return (
@@ -95,20 +97,20 @@ export default function UserView({ userName, code }: UserViewProps) {
 
       <h3>Your Queue</h3>
       <ul>
-        {queue.filter(q => q.requestedBy === userId).map((q) => (
+        {queue.slice(1).filter(q => q.requestedBy === userId).map((q) => (
           <li className="song-card" key={q.id}>
             <img className="album" src={q.albumImage}/>
             <div className="track-text">
               <p className="track-name">{q.title}</p> 
               <p className="artists">{q.artists.join(', ')}</p> 
             </div>
-            <button onClick={() => removeSong()}><Minus size={24}/></button>
+            <button onClick={() => removeSong(q.id)}><Minus size={24}/></button>
           </li>
         ))}
       </ul>
       <h3>Global Queue</h3>
       <ul>
-        {queue.map((q) => (
+        {queue.slice(1).map((q) => (
           <li className="song-card" key={q.id}>
             <img className="album" src={q.albumImage}/>
             <div className="track-text">

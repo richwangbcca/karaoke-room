@@ -47,9 +47,14 @@ export class Room {
     skipSong(): boolean {
         const song = this.queue.skipSong();
         if(!song) return false;
+        
+        return true;
+    }
 
-        const user = this.users.get(song.requestedBy);
-        if(user) user.queue.skipSong();
+    removeSong(songId: string ): boolean {
+        const removedSong = this.queue.removeSong(songId);
+
+        if(!removedSong) return false;
 
         return true;
     }
@@ -62,24 +67,31 @@ export class User {
     id: string;
     name: string;
     socketId: string;
-    queue: Queue;
 
     constructor(name: string, userSocketId: string) {
         this.id = uuidv4();
         this.name = name;
         this.socketId = userSocketId;
-        this.queue = new Queue();
     }
 
     addSong(song: Song): boolean {
-        this.queue.addSong(song);
-
         const code = this.getRoom();
         if(!code) return false;
 
         const room = rooms.get(code);
         if(!room) return false;
         room.queue.addSong(song);
+
+        return true;
+    }
+
+    removeSong(songId: string): boolean {
+        const code = this.getRoom();
+        if(!code) return false;
+
+        const room = rooms.get(code);
+        if(!room) return false;
+        room.queue.removeSong(songId);
 
         return true;
     }

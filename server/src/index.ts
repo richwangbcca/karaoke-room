@@ -49,7 +49,18 @@ io.on('connection', (socket) => {
 
         io.to(code).emit('queue:update', room.getQueue());
         callback({ success: true });
-    })
+    });
+
+    socket.on('host:removeSong', ({ code, songId }, callback) => {
+        const room = rooms.get(code);
+        if(!room) return;
+
+        const success = room.removeSong(songId);
+        if(!success) return;
+
+        io.to(code).emit('queue:update', room.getQueue());
+        callback({ success: true});
+    });
 
     socket.on('user:joinRoom', ({ code, name }, callback) => {
         const room = rooms.get(code);
@@ -71,8 +82,7 @@ io.on('connection', (socket) => {
         console.log(`${name} joined room ${code}`);
 
         callback({ success: true, userId: user.id });
-        }
-    );
+    });
 
     socket.on('user:addSong', ({ code, userId, title, artists, videoId, albumImage }, callback) => {
         const room = rooms.get(code);
@@ -99,7 +109,18 @@ io.on('connection', (socket) => {
 
         io.to(code).emit('queue:update', room.getQueue());
         callback({ success: true });
-    })
+    });
+
+    socket.on('user:removeSong', ({ code, songId }, callback) => {
+        const room = rooms.get(code);
+        if(!room) return;
+
+        const success = room.removeSong(songId);
+        if(!success) return;
+
+        io.to(code).emit('queue:update', room.getQueue());
+        callback({ success: true});
+    });
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);

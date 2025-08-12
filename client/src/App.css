@@ -287,7 +287,6 @@ ul {
 
 .song-card img {
   max-height: 5vh;
-  border: 1px solid black;
   flex-shrink: 0;
 }
 

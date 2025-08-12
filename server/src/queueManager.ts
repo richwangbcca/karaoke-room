@@ -25,8 +25,13 @@ export class Queue {
         return song;
     }
 
-    removeSong(song: Song): boolean {
-        return true;
+    removeSong(toRemoveId: string): Song | null {
+        const index = this.queue.findIndex(song => song.id === toRemoveId)
+        if (index == -1) return null;
+
+        const song = this.queue[index];
+        this.queue.splice(index, 1);
+        return song;
     }
 
     removeUser(userId: string): boolean {
