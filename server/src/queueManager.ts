@@ -2,16 +2,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class Queue {
     queue: Song[];
-    length: number;
 
     constructor() {
         this.queue = [];
-        this.length = 0;
     }
 
     addSong(song: Song): boolean {
         this.queue.push(song);
-        this.length += 1;
         return true;
     }
 
@@ -20,7 +17,6 @@ export class Queue {
         const song = this.queue[0];
 
         this.queue.shift();
-        this.length -= 1;
 
         return song;
     }
@@ -38,7 +34,6 @@ export class Queue {
         for (let i = this.queue.length - 1; i >= 1; i--) {
             if (this.queue[i].requestedBy === userId) {
                 this.queue.splice(i, 1);
-                this.length -= 1;
             }
         }
 

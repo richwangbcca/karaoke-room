@@ -64,7 +64,9 @@ function App() {
     );
   }
 
- return role === 'host' ? <HostView /> : <UserView userName={name} code={roomCode}/>;
+ return role === 'host' ? 
+ <HostView /> 
+ : <UserView userName={name} code={roomCode} onExit={()=>{ setRole(null); setName(''); setRoomCode(''); }}/>;
 }
 
 export default App;

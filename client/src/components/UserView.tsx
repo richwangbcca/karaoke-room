@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Plus, Minus, Search } from 'lucide-react';
 import socket from '../socket';
 
-export type UserViewProps = { userName: string; code: string };
+export type UserViewProps = { userName: string; code: string; onExit: ()=> void };
 
-export default function UserView({ userName, code }: UserViewProps) {
+export default function UserView({ userName, code, onExit }: UserViewProps) {
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [userId, setUserId] = useState('');
@@ -28,6 +28,11 @@ export default function UserView({ userName, code }: UserViewProps) {
 
     socket.on('queue:update', (queue) => {
       setQueue(queue);
+    });
+
+    socket.on('host:removeUser', () => {
+      console.log(userId);
+      onExit();
     });
   }, [name, roomCode]);
 

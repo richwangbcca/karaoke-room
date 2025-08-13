@@ -29,6 +29,9 @@ export class Room {
         this.queue.removeUser(user.id);
         this.users.delete(user.id)
 
+        socketRoomMap.delete(user.socketId);
+        socketUserIdMap.delete(user.socketId);
+
         return true;
     }
 

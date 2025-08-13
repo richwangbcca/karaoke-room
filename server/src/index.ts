@@ -62,6 +62,20 @@ io.on('connection', (socket) => {
         callback({ success: true});
     });
 
+    socket.on('host:removeUser', ({ code, userId }, callback) => {
+        const room = rooms.get(code);
+        if(!room) return;
+        
+        const user = room.users.get(userId);
+        if(!user) return;
+        const success = room.removeUser(userId);
+
+        io.to(user.socketId).emit('host:removeUser');
+        io.to(code).emit('room:update', Object.fromEntries(room.users));
+
+        callback({ success })
+    });
+
     socket.on('user:joinRoom', ({ code, name }, callback) => {
         const room = rooms.get(code);
         if(!room) return;
@@ -78,7 +92,6 @@ io.on('connection', (socket) => {
         socketRoomMap.set(socket.id, code);
         socketUserIdMap.set(socket.id, user.id);
 
-        console.log(room.users);
         io.to(code).emit('room:update', Object.fromEntries(room.users));
         console.log(`${name} joined room ${code}`);
 

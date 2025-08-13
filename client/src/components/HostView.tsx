@@ -40,6 +40,7 @@ export default function HostView() {
 
     return () => {
       socket.off('queue:update');
+      socket.off('room:update');
       socket.disconnect();
     };
   }, []);
@@ -53,8 +54,8 @@ export default function HostView() {
   const skipSong = () => {
     console.log("skipping")
     socket.emit('host:skipSong', { code: roomCode }, (res: any) => {
-      if (res.error){
-        alert(res.error);
+      if (res.error) {
+        console.warn(res.error);
       }
     });
   }
@@ -64,7 +65,15 @@ export default function HostView() {
     skipSong();
   }
 
-  const closeMembersSidebar= () => setMembersOpen(false);
+  const removeMember = (userId: string) => {
+    socket.emit("host:removeUser", { code: roomCode, userId }, (res: any) => {
+      if (res.error) {
+        console.warn(res.error);
+      }
+    })
+  }
+
+  const closeMembersSidebar = () => setMembersOpen(false);
 
   if (!roomCode) {
     return <p>Creating your room...</p>;
@@ -79,7 +88,7 @@ export default function HostView() {
           {[...members].map(([userId, userObject]) => (
             <li className="member-card" key={userId}>
               <p>{userObject.name}</p>
-              <button><Minus /></button>
+              <button onClick={() => removeMember(userId)}><Minus /></button>
             </li>
           ))}
         </ul>
