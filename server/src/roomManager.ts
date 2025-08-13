@@ -7,20 +7,17 @@ export class Room {
     code: string;
     hostId: string;
     users: Map<string, User>;
-    userNames: string[];
     queue: Queue;
 
     constructor(hostSocketId: string) {
         this.code = generateRoomCode();
         this.hostId = hostSocketId;
         this.users = new Map();
-        this.userNames = [],
         this.queue = new Queue();
     }
 
     addUser(user: User): boolean {
         this.users.set(user.id, user);
-        this.userNames.push(user.name);
 
         return true;
     }
@@ -28,11 +25,6 @@ export class Room {
     removeUser(userId: string): boolean {
         const user = this.users.get(userId);
         if(!user) return false;
-
-        const index = this.userNames.indexOf(user.name);
-        if (index !== -1) {
-            this.userNames.splice(index, 1);
-        }
 
         this.queue.removeUser(user.id);
         this.users.delete(user.id)
@@ -47,7 +39,7 @@ export class Room {
     skipSong(): boolean {
         const song = this.queue.skipSong();
         if(!song) return false;
-        
+
         return true;
     }
 

@@ -78,7 +78,8 @@ io.on('connection', (socket) => {
         socketRoomMap.set(socket.id, code);
         socketUserIdMap.set(socket.id, user.id);
 
-        io.to(code).emit('room:update', room.userNames);
+        console.log(room.users);
+        io.to(code).emit('room:update', Object.fromEntries(room.users));
         console.log(`${name} joined room ${code}`);
 
         callback({ success: true, userId: user.id });
@@ -136,7 +137,7 @@ io.on('connection', (socket) => {
 
         if(room && userId) {
             room.removeUser(userId);
-            io.to(code).emit('room:update', room.userNames);
+            io.to(code).emit('room:update', room.users);
             io.to(code).emit('queue:update', room.getQueue());
         }
     });

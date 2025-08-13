@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
 import YouTube, { YouTubePlayer, YouTubeEvent } from 'react-youtube'
+import { Minus } from 'lucide-react';
 
 export default function HostView() {
   const [roomCode, setRoomCode] = useState('');
@@ -9,7 +10,8 @@ export default function HostView() {
   const [currentSong, setCurrentSong] = useState('');
   const [currentSinger, setCurrentSinger] = useState('');
   const [nextSongTitle, setNextSongTitle] = useState("None");
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, setMembers] = useState<Map<string, any>>(new Map());
+  const [membersOpen, setMembersOpen] = useState(false);
 
   useEffect(() => {
     socket.connect();
@@ -29,8 +31,9 @@ export default function HostView() {
           setNextSongTitle(newQueue[1]?.title ?? "None");
         });
 
-        socket.on('room:update', (userList) => {
-          setMembers(userList);
+        socket.on('room:update', (userMap) => {
+          const memberMap = new Map(Object.entries(userMap));
+          setMembers(memberMap);
         })
       }
     });
@@ -61,12 +64,27 @@ export default function HostView() {
     skipSong();
   }
 
+  const closeMembersSidebar= () => setMembersOpen(false);
+
   if (!roomCode) {
     return <p>Creating your room...</p>;
   }
 
   return (
     <div className="host-view">
+      {membersOpen && <div className='backdrop' onClick={closeMembersSidebar} />}
+      <div className={`member-sidebar ${membersOpen ? "open" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <h2>Room Members</h2>
+        <ul>
+          {[...members].map(([userId, userObject]) => (
+            <li className="member-card" key={userId}>
+              <p>{userObject.name}</p>
+              <button><Minus /></button>
+            </li>
+          ))}
+        </ul>
+        <button>Close Room</button>
+      </div>
       <div className="current">
         <h2 className="song">{currentSong ? "Now playing: " : ""}{currentSong}</h2>
         <h2 className="singer">{currentSinger ? "Requested by: " : ""}{currentSinger}</h2>
@@ -93,7 +111,7 @@ export default function HostView() {
       )}
       <div className="footer">
         <div className="num-users">
-          <h2 className="num-users">👤 {members.length}</h2>
+          <button onClick={() => setMembersOpen(true)}>👤 {members.size}</button>
         </div>
 
         <div className="room-info">

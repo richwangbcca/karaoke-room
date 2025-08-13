@@ -148,6 +148,66 @@
   min-height: 100%;
 }
 
+/* Sidebar styles */
+.member-sidebar {
+  position: fixed;
+  top: 5vh;
+  left: -300px; /* hidden off screen */
+  width: 300px;
+  height: 88vh;
+  background-color: #1d1441;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
+  transition: left 0.3s ease;
+  z-index: 1001;
+  border-radius: 10px;
+  opacity: 95%;
+}
+
+.member-sidebar.open {
+  left: 0px;
+}
+
+.member-sidebar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.member-sidebar li {
+  background: #1C2541;
+  border-radius: 0.75rem;
+  padding: 0rem 0.5rem;
+  display: flex;
+  list-style: none;
+  align-items: center;
+  max-height: 5vh;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.member-sidebar li button {
+  all: unset;
+  cursor: pointer;
+  position: absolute;
+  right: 30px;
+  display: flex;
+  align-items: center;
+
+}
+
+/* Backdrop styles */
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000; /* behind sidebar */
+}
+
+
 .footer {
   width: 100vw;
   padding: 0 5vw;
@@ -163,7 +223,9 @@
 }
 
 .num-users {
+  all: unset;
   font-size: 2rem;
+  font-weight: 600;
   width: 20%;
   height: 100%;
   display: flex;
@@ -171,10 +233,13 @@
   justify-content: center;
 }
 
-.num-users h2 {
+.num-users button {
+  all: unset;
+  cursor: pointer;
   margin-left: 10%;
-  min-width: 50%;
+  margin-right: auto;
 }
+
 
 .room-info {
   text-align: center;
