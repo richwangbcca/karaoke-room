@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Search } from 'lucide-react';
+import { findVideo } from './videoHelper';
 import socket from '../socket';
 
 export type UserViewProps = { userName: string; code: string; onExit: ()=> void };
@@ -13,11 +14,13 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Establish user states
   useEffect(() => {
     setName(userName);
     setRoomCode(code.toUpperCase());
   }, [userName, code]);
 
+  // Connect to room and to queue/user-specific events
   useEffect(() => {
     if (!name || !roomCode) return ;
     socket.connect();
@@ -36,7 +39,10 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     });
   }, [name, roomCode]);
 
+  // Search bar
   const search = async () => {
+    if(!searchTerm) return;
+
     setLoading(true);
     const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
@@ -48,28 +54,45 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     setLoading(false);
   };
 
+  // Add song to queue
   const addSong = async(title: string, artists: string, albumImage: string) => {
-    const searchTerm = `${title} ${artists[0]} karaoke original key`;
+    const searchTerm = `${title} ${artists[0]} karaoke`;
     const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
       console.warn(`Fetch error: ${res.status}`);
     } 
+
     const data = await res.json();
+    const videos = data.videos;
+
+    if (!videos.length) {
+      console.warn('No videos found')
+    }
+
+    let playable: string;
+    try {
+      playable = await findVideo(videos);
+    } catch (err) {
+      console.warn('No playable videos found', err);
+      return;
+    }
 
     socket.emit('user:addSong', {
       code: roomCode,
       userId,
       title: title,
       artists: artists,
-      videoId: data[0].videoId,
+      videoId: playable,
       albumImage,
     }, (resp: any) => {
       if (resp.error) alert(resp.error);
     });
+
     setResults([]);
     setSearchTerm("");
   };
 
+  // Remove song from queue
   const removeSong = async(songId: string) => {
     socket.emit('user:removeSong', {code: roomCode, songId}, (resp: any) => {
       if (resp.error) alert(resp.error);
