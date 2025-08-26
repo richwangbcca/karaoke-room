@@ -24,7 +24,6 @@ export default function HostView() {
         
         socket.on('queue:update', (newQueue) => {
           setQueue(newQueue);
-          console.log(newQueue[0]);
           setCurrentVideoId(newQueue[0]?.videoId ?? null);
           setCurrentSong(newQueue[0] ? `${newQueue[0].title}- ${newQueue[0].artists.join(', ')}` : "");
           setCurrentSinger(newQueue[0]?.singer ?? "");

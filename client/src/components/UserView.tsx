@@ -13,6 +13,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   const [results, setResults] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   // Establish user states
   useEffect(() => {
@@ -41,7 +42,10 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // Search bar
   const search = async () => {
-    if(!searchTerm) return;
+    if(!searchTerm) {
+      setResults([]);
+      return;
+    }
 
     setLoading(true);
     const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(searchTerm)}`);
@@ -56,6 +60,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // Add song to queue
   const addSong = async(title: string, artists: string, albumImage: string) => {
+    setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;
     const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
@@ -90,6 +95,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
     setResults([]);
     setSearchTerm("");
+    setAdding(false);
   };
 
   // Remove song from queue
@@ -101,6 +107,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   return (
     <div>
+      <button> Leave Room </button>
       <h2>What do you want to sing, {name}?</h2>
       <form action={search} className="search-bar">
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
@@ -117,7 +124,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
                 <p className="track-name">{r.trackName}</p> 
                 <p className="artists">{r.artists.join(', ')}</p> 
               </div>
-              <button onClick={() => addSong(r.trackName, r.artists, r.albumImage)}><Plus size={24}/></button>
+              <button onClick={() => addSong(r.trackName, r.artists, r.albumImage)} disabled={adding}><Plus size={24}/></button>
             </li>
           ))}
         </ul>

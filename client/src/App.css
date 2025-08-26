@@ -148,7 +148,6 @@
   min-height: 100%;
 }
 
-/* Sidebar styles */
 .member-sidebar {
   position: fixed;
   top: 5vh;
@@ -163,6 +162,7 @@
   z-index: 1001;
   border-radius: 10px;
   opacity: 95%;
+  overflow: auto;
 }
 
 .member-sidebar.open {
@@ -193,7 +193,21 @@
   right: 30px;
   display: flex;
   align-items: center;
+}
 
+.member-sidebar button {
+  display: block;
+  margin: auto;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: #1C2541;
+  padding: 0.5rem;
+  transition: border-color 0.25s;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
 }
 
 /* Backdrop styles */
