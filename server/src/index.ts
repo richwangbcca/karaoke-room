@@ -73,7 +73,21 @@ io.on('connection', (socket) => {
         io.to(user.socketId).emit('host:removeUser');
         io.to(code).emit('room:update', Object.fromEntries(room.users));
 
-        callback({ success })
+        callback({ success });
+    });
+
+    socket.on('host:closeRoom', ({ code }, callback) => {
+        console.log('Called host:closeRoom');
+        const room = rooms.get(code);
+        if(!room) return;
+
+        io.to(code).emit('host:closeRoom');
+        const success = room.closeRoom();
+        
+        rooms.delete(code);
+
+        console.log(`Closing room ${code}`);
+        callback({ success });
     });
 
     socket.on('user:joinRoom', ({ code, name }, callback) => {

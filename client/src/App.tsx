@@ -65,7 +65,7 @@ function App() {
   }
 
  return role === 'host' ? 
- <HostView /> 
+ <HostView onExit={()=>{ setRole(null); setName(''); setRoomCode(''); }}/> 
  : <UserView userName={name} code={roomCode} onExit={()=>{ setRole(null); setName(''); setRoomCode(''); }}/>;
 }
 

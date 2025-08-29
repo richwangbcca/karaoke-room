@@ -35,7 +35,10 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     });
 
     socket.on('host:removeUser', () => {
-      console.log(userId);
+      onExit();
+    });
+
+    socket.on('host:closeRoom', () => {
       onExit();
     });
   }, [name, roomCode]);

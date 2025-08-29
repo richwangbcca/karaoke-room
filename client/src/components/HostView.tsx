@@ -3,7 +3,9 @@ import socket from '../socket';
 import YouTube, { YouTubePlayer, YouTubeEvent } from 'react-youtube'
 import { Minus } from 'lucide-react';
 
-export default function HostView() {
+export type HostViewProps = { onExit: ()=> void };
+
+export default function HostView({ onExit }: HostViewProps) {
   const [roomCode, setRoomCode] = useState('');
   const [queue, setQueue] = useState<any[]>([]);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
@@ -74,6 +76,19 @@ export default function HostView() {
 
   const closeMembersSidebar = () => setMembersOpen(false);
 
+  const closeRoom = () => {
+    if (confirm("Are you sure you want to close this room?")) {
+      socket.emit('host:closeRoom', { code: roomCode }, (res:any) => {
+        if (res.error) {
+          console.warn(res.error);
+        }
+        onExit();
+      });
+    } else {
+      return;
+    }
+  };
+
   if (!roomCode) {
     return <p>Creating your room...</p>;
   }
@@ -91,7 +106,7 @@ export default function HostView() {
             </li>
           ))}
         </ul>
-        <button>Close Room</button>
+        <button onClick={closeRoom}>Close Room</button>
       </div>
       <div className="current">
         <h2 className="song">{currentSong ? "Now playing: " : ""}{currentSong}</h2>

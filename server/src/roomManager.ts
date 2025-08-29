@@ -53,6 +53,14 @@ export class Room {
 
         return true;
     }
+
+    closeRoom(): boolean {
+        this.users.forEach((user, _) => {
+            socketRoomMap.delete(user.socketId);
+            socketUserIdMap.delete(user.socketId);
+        });
+        return true;
+    }
 }
 
 export const socketRoomMap = new Map<string, string>();    // User socket id : room code

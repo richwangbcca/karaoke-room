@@ -22,7 +22,6 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 ### Planned Features/Developer TODO
 - Randomize messages when no songs are playing
 - "Leave Room" button for users
-- "Close Room" control for hosts
 - Utilize cookies for persistent user IDs
 
 ## Stack and Tools

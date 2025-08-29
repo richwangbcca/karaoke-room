@@ -184,6 +184,7 @@
   max-height: 5vh;
   overflow: hidden;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .member-sidebar li button {
