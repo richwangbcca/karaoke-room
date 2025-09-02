@@ -38,12 +38,6 @@ export default function HostView({ onExit }: HostViewProps) {
         })
       }
     });
-
-    return () => {
-      socket.off('queue:update');
-      socket.off('room:update');
-      socket.disconnect();
-    };
   }, []);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -78,12 +72,8 @@ export default function HostView({ onExit }: HostViewProps) {
 
   const closeRoom = () => {
     if (confirm("Are you sure you want to close this room?")) {
-      socket.emit('host:closeRoom', { code: roomCode }, (res:any) => {
-        if (res.error) {
-          console.warn(res.error);
-        }
-        onExit();
-      });
+      socket.emit('host:closeRoom', { code: roomCode });
+      onExit();
     } else {
       return;
     }
