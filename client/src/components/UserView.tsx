@@ -65,10 +65,12 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   const addSong = async(title: string, artists: string, albumImage: string) => {
     setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;
+    console.log(`searchTerm: ${searchTerm}`);
     const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
       console.warn(`Fetch error: ${res.status}`);
     } 
+    console.log("Searched YT");
 
     const data = await res.json();
     const videos = data.videos;
@@ -78,6 +80,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     }
 
     let playable: string;
+    console.log("Trying videos")
     try {
       playable = await findVideo(videos);
     } catch (err) {
@@ -92,8 +95,6 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
       artists: artists,
       videoId: playable,
       albumImage,
-    }, (resp: any) => {
-      if (resp.error) alert(resp.error);
     });
 
     setResults([]);
@@ -108,9 +109,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // User leaves room
   const leaveRoom = async() => {
-    socket.emit('user:leaveRoom', {code: roomCode, userId}, (resp: any) => {
-      if (resp.error) alert(resp.error);
-    });
+    socket.emit('user:leaveRoom', {code: roomCode, userId});
     onExit();
   }
 

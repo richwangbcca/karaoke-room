@@ -48,11 +48,7 @@ export default function HostView({ onExit }: HostViewProps) {
 
   const skipSong = () => {
     console.log("skipping")
-    socket.emit('host:skipSong', { code: roomCode }, (res: any) => {
-      if (res.error) {
-        console.warn(res.error);
-      }
-    });
+    socket.emit('host:skipSong', { code: roomCode });
   }
 
   const onVideoEnd = () => {
@@ -61,11 +57,7 @@ export default function HostView({ onExit }: HostViewProps) {
   }
 
   const removeMember = (userId: string) => {
-    socket.emit("host:removeUser", { code: roomCode, userId }, (res: any) => {
-      if (res.error) {
-        console.warn(res.error);
-      }
-    })
+    socket.emit("host:removeUser", { code: roomCode, userId });
   }
 
   const closeMembersSidebar = () => setMembersOpen(false);
