@@ -307,6 +307,24 @@
 
 /* UserView */
 
+.leave-room {
+  display: block;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: #1C2541;
+  padding: 0.5rem;
+  transition: border-color 0.25s;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.leave-room:hover {
+  background: #445ba0;
+}
+
 .search-bar {
   text-align: center;
   position: relative;

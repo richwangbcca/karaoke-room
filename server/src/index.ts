@@ -71,13 +71,16 @@ io.on('connection', (socket) => {
         const success = room.removeUser(userId);
 
         io.to(user.socketId).emit('host:removeUser');
+        
+        const toRemove = io.sockets.sockets.get(user.socketId);
+        if (toRemove) toRemove.leave(code);
+
         io.to(code).emit('room:update', Object.fromEntries(room.users));
 
         callback({ success });
     });
 
     socket.on('host:closeRoom', ({ code }, callback) => {
-        console.log('Called host:closeRoom');
         const room = rooms.get(code);
         if(!room) return;
 
@@ -111,6 +114,16 @@ io.on('connection', (socket) => {
 
         callback({ success: true, userId: user.id });
     });
+
+    socket.on('user:leaveRoom', ({ code, userId }, callback) => {
+        const room = rooms.get(code);
+        if(!room) return;
+
+        room.removeUser(userId);
+        io.to(code).emit('room:update', Object.fromEntries(room.users));
+
+        socket.leave(code);
+    })
 
     socket.on('user:addSong', ({ code, userId, title, artists, videoId, albumImage }, callback) => {
         const room = rooms.get(code);

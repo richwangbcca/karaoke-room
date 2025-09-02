@@ -103,14 +103,20 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // Remove song from queue
   const removeSong = async(songId: string) => {
-    socket.emit('user:removeSong', {code: roomCode, songId}, (resp: any) => {
+    socket.emit('user:removeSong', {code: roomCode, songId});
+  }
+
+  // User leaves room
+  const leaveRoom = async() => {
+    socket.emit('user:leaveRoom', {code: roomCode, userId}, (resp: any) => {
       if (resp.error) alert(resp.error);
     });
+    onExit();
   }
 
   return (
     <div>
-      <button> Leave Room </button>
+      <button className="leave-room" onClick={leaveRoom}> Leave Room </button>
       <h2>What do you want to sing, {name}?</h2>
       <form action={search} className="search-bar">
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
