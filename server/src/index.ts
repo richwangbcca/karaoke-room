@@ -8,6 +8,7 @@ import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager
 import { Song } from './queueManager'
 import { youtubeRouter } from './api/youtube';
 import { spotifyRouter } from './api/spotify';
+import { youtubeCache } from './cache/youtubeCache';
 
 const app = express();
 app.use('/api/youtube', youtubeRouter);
@@ -68,7 +69,7 @@ io.on('connection', (socket) => {
         if(!user) return;
 
         const success = room.removeUser(userId);
-        if(!user) return;
+        if(!success) return;
 
         io.to(user.socketId).emit('host:removeUser');
         
@@ -162,6 +163,24 @@ io.on('connection', (socket) => {
         if(!success) return;
 
         io.to(code).emit('queue:update', room.getQueue());
+    });
+
+    socket.on('user:checkCache', async ({ searchTerm }, callback) => {
+        try {
+            const cachedVideoId = await youtubeCache.get(searchTerm);
+            callback({ videoId: cachedVideoId });
+        } catch (error) {
+            console.error('Error checking cache:', error);
+            callback({ videoId: null });
+        }
+    });
+
+    socket.on('user:cacheVideo', async ({ searchTerm, videoId }) => {
+        try {
+            await youtubeCache.set(searchTerm, videoId);
+        } catch (error) {
+            console.error('Error caching video:', error);
+        }
     });
 
     socket.on('disconnect', () => {

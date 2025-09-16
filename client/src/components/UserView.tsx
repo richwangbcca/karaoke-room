@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Search } from 'lucide-react';
-import { findVideo } from './videoHelper';
+import { findVideo, checkVideo } from './videoHelper';
 import socket from '../socket';
 
 export type UserViewProps = { userName: string; code: string; onExit: ()=> void };
@@ -66,40 +66,78 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;
     console.log(`searchTerm: ${searchTerm}`);
-    const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
-    if (!res.ok) {
-      console.warn(`Fetch error: ${res.status}`);
-    } 
-    console.log("Searched YT");
 
-    const data = await res.json();
-    const videos = data.videos;
+    // Check cache first
+    socket.emit('user:checkCache', { searchTerm }, async (response: { videoId: string | null }) => {
+      let playable: string;
 
-    if (!videos.length) {
-      console.warn('No videos found')
-    }
+      if (response.videoId) {
+        console.log('Found cached video');
+        const isStillPlayable = await checkVideo(response.videoId);
 
-    let playable: string;
-    console.log("Trying videos")
-    try {
-      playable = await findVideo(videos);
-    } catch (err) {
-      console.warn('No playable videos found', err);
-      return;
-    }
+        if (isStillPlayable) {
+          console.log('Cached video is still playable, adding song');
+          playable = response.videoId;
 
-    socket.emit('user:addSong', {
-      code: roomCode,
-      userId,
-      title: title,
-      artists: artists,
-      videoId: playable,
-      albumImage,
+          socket.emit('user:addSong', {
+            code: roomCode,
+            userId,
+            title: title,
+            artists: artists,
+            videoId: playable,
+            albumImage,
+          });
+
+          setResults([]);
+          setSearchTerm("");
+          setAdding(false);
+          return;
+        } else {
+          console.log('Cached video no longer playable, falling back to search');
+        }
+      }
+
+      // Cache miss or cached video not playable - use existing logic
+      const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
+      if (!res.ok) {
+        console.warn(`Fetch error: ${res.status}`);
+        setAdding(false);
+        return;
+      }
+      console.log("Searched YT");
+
+      const data = await res.json();
+      const videos = data.videos;
+
+      if (!videos.length) {
+        console.warn('No videos found');
+        setAdding(false);
+        return;
+      }
+
+      console.log("Trying videos");
+      try {
+        playable = await findVideo(videos);
+        socket.emit('user:cacheVideo', { searchTerm, videoId: playable });
+      } catch (err) {
+        console.warn('No playable videos found', err);
+        setAdding(false);
+        return;
+      }
+
+      socket.emit('user:addSong', {
+        code: roomCode,
+        userId,
+        title: title,
+        artists: artists,
+        videoId: playable,
+        albumImage,
+      });
+
+      setResults([]);
+      setSearchTerm("");
+      setAdding(false);
     });
-
-    setResults([]);
-    setSearchTerm("");
-    setAdding(false);
   };
 
   // Remove song from queue

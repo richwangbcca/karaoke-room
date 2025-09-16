@@ -72,3 +72,38 @@ export async function findVideo(
     tryNext();
   });
 }
+
+export async function checkVideo(videoId: string): Promise<boolean> {
+  await loadYouTube();
+
+  return new Promise((resolve) => {
+    const container = document.createElement("div");
+    container.style.width = "0px";
+    container.style.height = "0px";
+    container.style.opacity = "0";
+    document.body.appendChild(container);
+
+    const player = new window.YT.Player(container, {
+      videoId,
+      playerVars: { autoplay: 0, mute: 1 },
+      events: {
+        onReady: (event: any) => {
+          event.target.mute();
+          event.target.playVideo();
+        },
+        onStateChange: (event: any) => {
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            resolve(true);
+            player.destroy();
+            container.remove();
+          }
+        },
+        onError: () => {
+          resolve(false);
+          player.destroy();
+          container.remove();
+        },
+      },
+    });
+  });
+}
