@@ -21,8 +21,8 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 
 ### Planned Features/Developer TODO
 - Randomize messages when no songs are playing
-- "Leave Room" button for users
 - Utilize cookies for persistent user IDs
+- Cache Spotify search
 
 ## Stack and Tools
 - Frontend: TypeScript, React
