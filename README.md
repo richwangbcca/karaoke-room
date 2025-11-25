@@ -13,7 +13,8 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 ### Current Features
 - Room-based sessions: Hosts create a room with a 5-character code, others join instantly.
 - Spotify-powered search: Ensures accurate track names and artist matching.
-- Automatic karaoke video lookup: Finds the best karaoke version on YouTube.
+- Automatic karaoke video lookup: Finds the best karaoke version on YouTube with intelligent caching.
+- Intelligent YouTube caching: Redis-powered LRU cache stores links for the 1000 most common requests dramatically reducing API calls.
 - Real-time queue sync: All users see a personal queue and a global queue, updated instantly.
 - Autoplay: Songs play on the hosts's screen without manual intervention.
 - Queue management: Users can remove their own songs, and hosts can remove any song, skip the current one, or remove users.
@@ -27,13 +28,15 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 ## Stack and Tools
 - Frontend: TypeScript, React
 - Backend: Node.js, socket.io
+- Cache: Redis (LRU eviction for YouTube video links)
 - APIs: Spotify Web API, YouTube Data API
-- Pacakge Management: pnpm workspace
+- Package Management: pnpm workspace
 
 ## Installation and Setup
 ### Prerequisites
 - Node.js
 - pnpm
+- Redis server
 - [Spotify Client ID and Client Secret](https://developer.spotify.com/documentation/web-api/)
 - [YouTube API Key](https://developers.google.com/youtube/v3/getting-started)
 ### Steps
@@ -46,11 +49,16 @@ Install dependencies
 ```
 pnpm install
 ```
+Start Redis server
+```
+redis-server
+```
 Set environment variables in .env
 ```
 SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 YOUTUBE_API_KEY=your_youtube_api_key
+REDIS_URL=redis://localhost:6379
 ```
 Start development servers
 ```
