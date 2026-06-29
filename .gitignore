@@ -35,3 +35,5 @@ coverage/
 # pnpm
 .pnpm-debug.log
 .pnpm-store/
+
+dump.rdb

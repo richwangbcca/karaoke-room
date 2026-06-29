@@ -63,12 +63,15 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // Add song to queue
   const addSong = async(title: string, artists: string, albumImage: string) => {
+    console.log("addSong: Starting");
     setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;
     console.log(`searchTerm: ${searchTerm}`);
 
     // Check cache first
+    console.log("addSong: Emitting user:checkCache");
     socket.emit('user:checkCache', { searchTerm }, async (response: { videoId: string | null }) => {
+      console.log("addSong: checkCache callback fired with response:", response);
       let playable: string;
 
       if (response.videoId) {

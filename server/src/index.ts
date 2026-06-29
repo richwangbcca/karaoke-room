@@ -71,10 +71,11 @@ io.on('connection', (socket) => {
         const success = room.removeUser(userId);
         if(!success) return;
 
-        io.to(user.socketId).emit('host:removeUser');
-        
         const toRemove = io.sockets.sockets.get(user.socketId);
-        if (toRemove) toRemove.leave(code);
+        if (toRemove) {
+            toRemove.emit('host:removeUser');
+            toRemove.leave(code);
+        }
 
         io.to(code).emit('room:update', Object.fromEntries(room.users));
     });
@@ -197,7 +198,7 @@ io.on('connection', (socket) => {
 
         if(room && userId) {
             room.removeUser(userId);
-            io.to(code).emit('room:update', room.users);
+            io.to(code).emit('room:update', Object.fromEntries(room.users));
             io.to(code).emit('queue:update', room.getQueue());
         }
     });
