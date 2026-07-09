@@ -100,14 +100,10 @@ io.on('connection', (socket) => {
 
     socket.on('user:joinRoom', ({ code, name }, callback) => {
         const room = rooms.get(code);
-        if(!room) return;
-        
+        if(!room) return callback({ error: 'Room not found' });
+
         const user = new User(name, socket.id);
-        const success = room.addUser(user);
-        if (!success) {
-            callback({ error: 'Room not found'});
-            return;
-        }
+        room.addUser(user);
 
         socket.join(code);
 
@@ -159,6 +155,12 @@ io.on('connection', (socket) => {
     socket.on('user:removeSong', ({ code, songId }) => {
         const room = rooms.get(code);
         if(!room) return;
+
+        const userId = socketUserIdMap.get(socket.id);
+        if(!userId) return;
+
+        const song = room.getQueue().find(s => s.id === songId);
+        if(!song || song.requestedBy !== userId) return;
 
         const success = room.removeSong(songId);
         if(!success) return;

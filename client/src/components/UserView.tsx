@@ -23,24 +23,26 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // Connect to room and to queue/user-specific events
   useEffect(() => {
-    if (!name || !roomCode) return ;
+    if (!name || !roomCode) return;
     socket.connect();
     socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
       if (res.error) return alert(res.error);
       setUserId(res.userId);
     });
 
-    socket.on('queue:update', (queue) => {
-      setQueue(queue);
-    });
+    const handleQueueUpdate = (queue: any[]) => setQueue(queue);
+    const handleRemoveUser = () => onExit();
+    const handleCloseRoom = () => onExit();
 
-    socket.on('host:removeUser', () => {
-      onExit();
-    });
+    socket.on('queue:update', handleQueueUpdate);
+    socket.on('host:removeUser', handleRemoveUser);
+    socket.on('host:closeRoom', handleCloseRoom);
 
-    socket.on('host:closeRoom', () => {
-      onExit();
-    });
+    return () => {
+      socket.off('queue:update', handleQueueUpdate);
+      socket.off('host:removeUser', handleRemoveUser);
+      socket.off('host:closeRoom', handleCloseRoom);
+    };
   }, [name, roomCode]);
 
   // Search bar
@@ -62,7 +64,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   };
 
   // Add song to queue
-  const addSong = async(title: string, artists: string, albumImage: string) => {
+  const addSong = async(title: string, artists: string[], albumImage: string) => {
     console.log("addSong: Starting");
     setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;

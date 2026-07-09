@@ -1,23 +1,35 @@
 #root {
-  width: 50%;
-  max-width: 1280px;
+  width: 100%;
+  max-width: 540px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1.5rem;
 }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ===== Home ===== */
 
 .home {
   text-align: center;
+  padding-top: 4vh;
 }
 
 .home h1 {
-  font-size: 3rem;
+  font-size: 2.75rem;
   line-height: 1.1;
-  margin-bottom: 0px;
+  margin-bottom: 0.35rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .home h2 {
-  font-size: 1.5rem;
-  margin-bottom: 3rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-bottom: 2.5rem;
 }
 
 .home .form {
@@ -29,75 +41,123 @@
 .home .input-box {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.1rem;
   width: 300px;
 }
 
 .home .input-box label {
   text-align: left;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+input {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input::placeholder {
+  color: var(--text-dim);
+}
+
+input:focus {
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 3px rgba(132, 151, 247, 0.18);
 }
 
 .home .input-box input {
-  padding: 0.75rem;
+  padding: 0.75rem 0.9rem;
   font-size: 1rem;
-  border: 0px;
-  border-radius: 0.75rem;
+  border-radius: var(--radius);
 }
 
 .home .code-input {
   text-transform: uppercase;
+  letter-spacing: 0.18em;
 }
 
 .home .error {
-  color: red;
+  color: var(--danger);
   margin-top: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
+/* Primary CTA */
 .home button {
   display: block;
-  text-align: center;
-  width: 18.75rem;
+  width: 300px;
   font-size: 1rem;
-  margin: 0 auto;
-  padding: 0.7em 1.2em;
-  border-radius: 1rem;
+  margin: 0.6rem auto 0;
+  padding: 0.75rem 1.2rem;
   border: 1px solid transparent;
-  font-weight: 500;
-  font-family: inherit;
-  background: #1C2541;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  border-radius: var(--radius);
+  color: #fff;
+  font-weight: 600;
+  background: var(--accent);
+  transition: background 0.15s;
 }
 
 .home button:hover {
-  background: #445ba0;
+  background: var(--accent-2);
 }
 
 .home .host-div {
-  height: 15vh;
+  margin-top: 3rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .home .host-div h2 {
   font-weight: 500;
-  margin-bottom: 1rem;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-dim);
 }
 
-/* HostView */
+/* Secondary CTA */
+.home .host-div button {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.home .host-div button:hover {
+  background: var(--surface-2);
+}
+
+.home > p {
+  margin-top: 3rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+/* ===== HostView ===== */
 
 .current {
   position: fixed;
   top: 0;
   left: 5vw;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   display: flex;
   height: 5vh;
   align-items: center;
+  color: var(--text-dim);
+  z-index: 2;
+}
+
+.current h2 {
+  font-weight: 500;
 }
 
 .current .song {
@@ -131,12 +191,20 @@
   overflow: hidden;
   text-align: center;
   justify-content: center;
-  background-color: #0e0e0e;
+  background-color: #000;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
 }
 
 .theater p {
-  font-size: 25px;
-  margin: 0.25rem auto;
+  font-size: 1.5rem;
+  margin: 0.35rem auto;
+  color: var(--text-dim);
+}
+
+.theater p:first-child {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .theater iframe {
@@ -151,22 +219,26 @@
 .member-sidebar {
   position: fixed;
   top: 5vh;
-  left: -300px; /* hidden off screen */
-  width: 300px;
+  left: -340px;
+  width: 320px;
   height: 88vh;
-  background-color: #1d1441;
-  color: white;
-  padding: 20px;
-  box-sizing: border-box;
+  background: var(--bg-2);
+  color: var(--text);
+  padding: 1.5rem;
   transition: left 0.3s ease;
   z-index: 1001;
-  border-radius: 10px;
-  opacity: 95%;
+  border-radius: 0 0.75rem 0.75rem 0;
   overflow: auto;
+  border-right: 1px solid var(--border);
 }
 
 .member-sidebar.open {
   left: 0px;
+}
+
+.member-sidebar h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
 }
 
 .member-sidebar ul {
@@ -175,108 +247,140 @@
 }
 
 .member-sidebar li {
-  background: #1C2541;
-  border-radius: 0.75rem;
-  padding: 0rem 0.5rem;
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
   display: flex;
   list-style: none;
   align-items: center;
-  max-height: 5vh;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 0.5rem;
   width: 100%;
+}
+
+.member-sidebar li p {
+  margin: 0;
+  font-weight: 500;
 }
 
 .member-sidebar li button {
   all: unset;
   cursor: pointer;
   position: absolute;
-  right: 30px;
+  right: 0.6rem;
   display: flex;
   align-items: center;
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: 0.15rem;
+  transition: background 0.15s;
 }
 
-.member-sidebar button {
+.member-sidebar li button:hover {
+  background: rgba(217, 85, 107, 0.15);
+}
+
+/* Close-room */
+.member-sidebar > button {
   display: block;
-  margin: auto;
-  border: 1px solid transparent;
-  border-radius: 0.5rem;
-  background: #1C2541;
-  padding: 0.5rem;
-  transition: border-color 0.25s;
-  cursor: pointer;
-  font-family: inherit;
+  margin: 1.25rem auto 0;
+  border: 1px solid rgba(217, 85, 107, 0.4);
+  border-radius: var(--radius);
+  background: rgba(217, 85, 107, 0.12);
+  color: var(--danger);
+  padding: 0.55rem 1.1rem;
   font-weight: 600;
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  transition: background 0.15s;
 }
 
-/* Backdrop styles */
+.member-sidebar > button:hover {
+  background: rgba(217, 85, 107, 0.2);
+}
+
+/* Backdrop */
 .backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000; /* behind sidebar */
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
 }
-
 
 .footer {
   width: 100vw;
-  padding: 0 5vw;
-  height: 7vh;
+  padding: 0 4vw;
+  height: 8vh;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-sizing: border-box;
   position: fixed;
   bottom: 0;
   left: 0;
-  background: linear-gradient(#08002b, #28243c);
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
 }
 
 .num-users {
   all: unset;
-  font-size: 2rem;
-  font-weight: 600;
   width: 20%;
   height: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
 }
 
 .num-users button {
   all: unset;
   cursor: pointer;
-  margin-left: 10%;
-  margin-right: auto;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: background 0.15s;
 }
 
+.num-users button:hover {
+  background: var(--surface-2);
+}
 
 .room-info {
   text-align: center;
-  margin: 0.75rem auto;
+  margin: 0 auto;
 }
 
-.room-info h2, 
+.room-info h2,
 .room-info p {
   margin: 0;
 }
 
-.room-info h2 {
-  font-size: 1.5rem;
+.room-info .room-code {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--highlight);
+  letter-spacing: 0.05em;
+}
+
+.room-info p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 0.1rem;
 }
 
 .queue-info {
-  font-size: 0.7rem;
-  width: 20%;
+  width: 22%;
   text-align: center;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .queue-info h2 {
@@ -284,112 +388,144 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   margin: 0;
+  max-width: 100%;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
 }
 
+/* Skip */
 .queue-info button {
-  display: block;
-  margin: auto;
-  border: 1px solid transparent;
-  border-radius: 0.5rem;
-  background: #1C2541;
-  padding: 0.5rem;
-  transition: border-color 0.25s;
-  cursor: pointer;
-  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.45rem 0.85rem;
   font-weight: 600;
-  margin-top: 0.25rem;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
+  transition: background 0.15s;
 }
 
 .queue-info button:hover {
-  background: #445ba0;
+  background: var(--surface-2);
 }
 
-/* UserView */
+/* ===== UserView ===== */
 
 .leave-room {
-  display: block;
-  border: 1px solid transparent;
-  border-radius: 0.5rem;
-  background: #1C2541;
-  padding: 0.5rem;
-  transition: border-color 0.25s;
-  cursor: pointer;
-  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.5rem 1rem;
   font-weight: 600;
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .leave-room:hover {
-  background: #445ba0;
+  background: rgba(217, 85, 107, 0.12);
+  border-color: rgba(217, 85, 107, 0.4);
+  color: var(--danger);
+}
+
+/* "What do you want to sing" */
+.leave-room + h2 {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text);
 }
 
 .search-bar {
   text-align: center;
   position: relative;
-  width: 60%;
-  margin: 0 auto;
+  width: 100%;
+  margin: 1.25rem auto 1.75rem;
 }
+
 .search-bar input {
   width: 100%;
-  height: 2rem;
+  height: 3rem;
   font-size: 1rem;
-  padding: 0.25rem 0.5rem;
-  padding-right: 0;
-  border: 0px;
-  border-radius: 0.75rem;
+  padding: 0 3.4rem 0 1rem;
+  border-radius: var(--radius);
 }
 
 .search-bar button {
   position: absolute;
-  right: 0;
+  right: 0.4rem;
   top: 50%;
   transform: translateY(-50%);
   border: none;
-  background: transparent;
+  background: var(--accent);
+  color: #fff;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 2rem;
-  width: 2rem;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.search-bar button:hover {
+  background: var(--accent-2);
 }
 
 .spinner {
-  margin: 20px 0;
-  border: 6px solid #1a1a1a;
-  border-top: 6px solid #8497f7;
+  margin: 2rem auto;
+  border: 5px solid var(--surface);
+  border-top: 5px solid var(--highlight);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   animation: spin 1s linear infinite;
 }
 
-.song-card {
-  background: #1C2541;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  margin: 0.5rem;
-  display: flex;
-  list-style: none;
-  align-items: center;
-  max-height: 5vh;
-  overflow: hidden;
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.75rem 0 0.75rem;
+  color: var(--text);
 }
 
 ul {
   padding: 0;
+  margin: 0;
+}
+
+.song-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem;
+  margin: 0.6rem 0;
+  display: flex;
+  list-style: none;
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.song-card:hover {
+  background: var(--surface-2);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .song-card img {
-  max-height: 5vh;
+  height: 52px;
+  width: 52px;
+  object-fit: cover;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
 .song-card .track-text {
-  margin: 0 1rem;
+  margin: 0;
   min-width: 0;
   flex: 1;
 }
@@ -403,51 +539,66 @@ ul {
 }
 
 .song-card .track-name {
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   font-weight: 600;
 }
 
 .song-card .artists {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-dim);
   margin-top: 0.1rem;
 }
 
+/* Add / remove icon buttons */
 .song-card button {
   margin-left: auto;
-  height: 50%;
-  aspect-ratio: 1 / 1;
+  height: 2.25rem;
+  width: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 50%;
-  border: 1px solid transparent;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   padding: 0;
-  background: none;
+  color: var(--text);
+  background: transparent;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .song-card button:hover {
-  cursor: pointer;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
 
+.song-card button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 @media (max-width: 600px) {
-  .search-bar {
+  #root {
+    padding: 1.5rem 1rem;
+  }
+
+  .search-bar,
+  .song-card {
     width: 100%;
   }
 
-  .song-card {
-    width: 85vw;
-    max-width: none;
+  .current .song,
+  .current .singer {
+    font-size: 0.75rem;
   }
 
-  ul {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* center list items horizontally */
-  padding: 0;
-}
+  .room-info .room-code {
+    font-size: 1.15rem;
+  }
 }
 
 @keyframes spin {

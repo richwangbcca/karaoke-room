@@ -25,7 +25,7 @@ youtubeRouter.get('/search', async (req, res) => {
         }
 
         const data = await response.json();
-        if (!data.items?.length) return null;
+        if (!data.items?.length) return res.json({ videos: [] });
         
         const videos = data.items.map((item: any) => item.id.videoId);
         return res.json({ videos });

@@ -19,25 +19,29 @@ export default function HostView({ onExit }: HostViewProps) {
     socket.connect();
 
     socket.emit('host:createRoom', {}, (res: any) => {
-      if (res.error) {
-        alert(res.error);
-      } else {
-        setRoomCode(res.code);
-        
-        socket.on('queue:update', (newQueue) => {
-          setQueue(newQueue);
-          setCurrentVideoId(newQueue[0]?.videoId ?? null);
-          setCurrentSong(newQueue[0] ? `${newQueue[0].title}- ${newQueue[0].artists.join(', ')}` : "");
-          setCurrentSinger(newQueue[0]?.singer ?? "");
-          setNextSongTitle(newQueue[1]?.title ?? "None");
-        });
-
-        socket.on('room:update', (userMap) => {
-          const memberMap = new Map(Object.entries(userMap));
-          setMembers(memberMap);
-        })
-      }
+      if (res.error) alert(res.error);
+      else setRoomCode(res.code);
     });
+
+    const handleQueueUpdate = (newQueue: any[]) => {
+      setQueue(newQueue);
+      setCurrentVideoId(newQueue[0]?.videoId ?? null);
+      setCurrentSong(newQueue[0] ? `${newQueue[0].title}- ${newQueue[0].artists.join(', ')}` : "");
+      setCurrentSinger(newQueue[0]?.singer ?? "");
+      setNextSongTitle(newQueue[1]?.title ?? "None");
+    };
+
+    const handleRoomUpdate = (userMap: any) => {
+      setMembers(new Map(Object.entries(userMap)));
+    };
+
+    socket.on('queue:update', handleQueueUpdate);
+    socket.on('room:update', handleRoomUpdate);
+
+    return () => {
+      socket.off('queue:update', handleQueueUpdate);
+      socket.off('room:update', handleRoomUpdate);
+    };
   }, []);
 
   const playerRef = useRef<YouTubePlayer | null>(null);

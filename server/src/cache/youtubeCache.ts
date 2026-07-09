@@ -2,7 +2,6 @@ import { createClient } from 'redis';
 
 interface CachedVideo {
     videoId: string;
-    searchTerm: string;
     cachedAt: number;
     lastAccessed: number;
 }
@@ -25,12 +24,6 @@ export class YouTubeCache {
     async connect(): Promise<void> {
         if (!this.client.isOpen) {
             await this.client.connect();
-        }
-    }
-
-    async disconnect(): Promise<void> {
-        if (this.client.isOpen) {
-            await this.client.disconnect();
         }
     }
 
@@ -69,7 +62,6 @@ export class YouTubeCache {
 
             const data: CachedVideo = {
                 videoId,
-                searchTerm: searchTerm.trim(),
                 cachedAt: Date.now(),
                 lastAccessed: Date.now()
             };
@@ -117,28 +109,6 @@ export class YouTubeCache {
         }
     }
 
-    async clear(): Promise<void> {
-        try {
-            await this.connect();
-            const keys = await this.client.keys('youtube:*');
-            if (keys.length > 0) {
-                await this.client.del(keys);
-            }
-        } catch (error) {
-            console.error('Error clearing YouTube cache:', error);
-        }
-    }
-
-    async getStats(): Promise<{ count: number; keys: string[] }> {
-        try {
-            await this.connect();
-            const keys = await this.client.keys('youtube:*');
-            return { count: keys.length, keys };
-        } catch (error) {
-            console.error('Error getting YouTube cache stats:', error);
-            return { count: 0, keys: [] };
-        }
-    }
 }
 
 export const youtubeCache = new YouTubeCache();

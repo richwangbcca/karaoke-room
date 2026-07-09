@@ -50,6 +50,7 @@ export function loadYouTube(): Promise<void> {
       if (!resolved) {
         resolved = true;
         clearInterval(checkIntervalId);
+        youtubeLoadPromise = null;
         reject(new Error("YouTube API failed to load"));
       }
     }, 10000);
@@ -65,6 +66,7 @@ export function loadYouTube(): Promise<void> {
         resolved = true;
         clearTimeout(timeoutId);
         clearInterval(checkIntervalId);
+        youtubeLoadPromise = null;
         reject(new Error("Failed to load YouTube iframe API script"));
       }
     };
