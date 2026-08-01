@@ -30,6 +30,18 @@ io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
     const issued = new Map<string, string[]>();
 
+    // Video ids this socket was actually offered, so a client can't queue arbitrary videos
+    // onto the host's screen by skipping the search flow.
+    const vouched = new Set<string>();
+
+    // Knowing the room code is not authorization; host actions are tied to the host's socket.
+    // Host identity is the socket, so a host reconnect orphans the room. fixing it needs a persistent 
+    // host token.
+    const hostRoom = (code: string): Room | undefined => {
+        const room = rooms.get(code);
+        return room && room.hostId === socket.id ? room : undefined;
+    };
+
     socket.on('host:createRoom', (_, callback) => {
         const room = new Room(socket.id);
         const code = room.code;
@@ -42,7 +54,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('host:skipSong', ({ code }) => {
-        const room = rooms.get(code);
+        const room = hostRoom(code);
         if(!room) return;
 
         const success = room.skipSong();
@@ -52,7 +64,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('host:removeSong', ({ code, songId }) => {
-        const room = rooms.get(code);
+        const room = hostRoom(code);
         if(!room) return;
 
         const success = room.removeSong(songId);
@@ -62,9 +74,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('host:removeUser', ({ code, userId }) => {
-        const room = rooms.get(code);
+        const room = hostRoom(code);
         if(!room) return;
-        
+
         const user = room.users.get(userId);
         if(!user) return;
 
@@ -81,7 +93,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('host:closeRoom', ({ code }) => {
-        const room = rooms.get(code);
+        const room = hostRoom(code);
         if(!room) return;
 
         io.to(code).emit('host:closeRoom');
@@ -133,6 +145,12 @@ io.on('connection', (socket) => {
         const user = room.users.get(userId);
         if(!user) return;
 
+        // Only videos this socket was offered by user:resolveVideo can be queued
+        if(!vouched.has(videoId)) {
+            console.warn(`Rejected unvouched videoId ${videoId} from ${socket.id}`);
+            return;
+        }
+
         const song: Song = {
             id: uuidv4(),
             title,
@@ -171,7 +189,13 @@ io.on('connection', (socket) => {
     socket.on('user:resolveVideo', async ({ searchTerm, skipCache }, callback) => {
         try {
             const result = await resolveVideo(searchTerm, Boolean(skipCache));
-            if (result.videos) issued.set(normalizeKey(searchTerm), result.videos);
+
+            if (result.videos) {
+                issued.set(normalizeKey(searchTerm), result.videos);
+                result.videos.forEach(v => vouched.add(v));
+            }
+            if (result.videoId) vouched.add(result.videoId);
+
             callback(result);
         } catch (error) {
             console.error('Error resolving video:', error);
