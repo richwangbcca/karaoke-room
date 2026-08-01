@@ -14,7 +14,8 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 - Room-based sessions: Hosts create a room with a 5-character code, others join instantly.
 - Spotify-powered search: Ensures accurate track names and artist matching.
 - Automatic karaoke video lookup: Finds the best karaoke version on YouTube with intelligent caching.
-- Intelligent YouTube caching: Redis-powered LRU cache stores links for the 1000 most common requests dramatically reducing API calls.
+- Intelligent YouTube caching: Redis-backed cache keyed on the Spotify track name, so every user requesting a song converges on one lookup. Failed searches are cached too, and concurrent requests for the same song share a single API call.
+- Spotify search caching: Repeated searches are served from Redis for 24 hours.
 - Real-time queue sync: All users see a personal queue and a global queue, updated instantly.
 - Autoplay: Songs play on the hosts's screen without manual intervention.
 - Queue management: Users can remove their own songs, and hosts can remove any song, skip the current one, or remove users.
@@ -23,12 +24,12 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 ### Planned Features/Developer TODO
 - Randomize messages when no songs are playing
 - Utilize cookies for persistent user IDs
-- Cache Spotify search
+- Rate limit song lookups per room (YouTube allows only ~100 uncached searches/day by default)
 
 ## Stack and Tools
 - Frontend: TypeScript, React
 - Backend: Node.js, socket.io
-- Cache: Redis (LRU eviction for YouTube video links)
+- Cache: Redis (YouTube video links and Spotify search results)
 - APIs: Spotify Web API, YouTube Data API
 - Package Management: pnpm workspace
 
@@ -49,9 +50,9 @@ Install dependencies
 ```
 pnpm install
 ```
-Start Redis server
+Start Redis server. Eviction is left to Redis, so set an LRU policy if you cap its memory:
 ```
-redis-server
+redis-server --maxmemory-policy allkeys-lru
 ```
 Set environment variables in .env
 ```

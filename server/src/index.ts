@@ -6,12 +6,11 @@ import 'dotenv/config';
 
 import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager'
 import { Song } from './queueManager'
-import { youtubeRouter } from './api/youtube';
+import { resolveVideo } from './api/youtube';
 import { spotifyRouter } from './api/spotify';
-import { youtubeCache } from './cache/youtubeCache';
+import { youtubeCache, normalizeKey, NEGATIVE_TTL } from './cache/redisCache';
 
 const app = express();
-app.use('/api/youtube', youtubeRouter);
 app.use('/api/spotify', spotifyRouter);
 const httpServer = createServer(app);
 
@@ -29,6 +28,7 @@ app.get('/api/rooms/:roomCode', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+    const issued = new Map<string, string[]>();
 
     socket.on('host:createRoom', (_, callback) => {
         const room = new Room(socket.id);
@@ -168,19 +168,34 @@ io.on('connection', (socket) => {
         io.to(code).emit('queue:update', room.getQueue());
     });
 
-    socket.on('user:checkCache', async ({ searchTerm }, callback) => {
+    socket.on('user:resolveVideo', async ({ searchTerm, skipCache }, callback) => {
         try {
-            const cachedVideoId = await youtubeCache.get(searchTerm);
-            callback({ videoId: cachedVideoId });
+            const result = await resolveVideo(searchTerm, Boolean(skipCache));
+            if (result.videos) issued.set(normalizeKey(searchTerm), result.videos);
+            callback(result);
         } catch (error) {
-            console.error('Error checking cache:', error);
-            callback({ videoId: null });
+            console.error('Error resolving video:', error);
+            callback({ error: 'Video lookup failed' });
         }
     });
 
+    // Only the client can tell whether a video actually plays, so it reports the winner back
+    // (or null if none of the candidates worked). Restricted to candidates we handed out.
     socket.on('user:cacheVideo', async ({ searchTerm, videoId }) => {
         try {
-            await youtubeCache.set(searchTerm, videoId);
+            const key = normalizeKey(searchTerm);
+            const candidates = issued.get(key);
+            if (!candidates) return;
+
+            if (videoId === null) {
+                await youtubeCache.set(key, null, NEGATIVE_TTL);
+            } else if (candidates.includes(videoId)) {
+                await youtubeCache.set(key, videoId);
+            } else {
+                return;
+            }
+
+            issued.delete(key);
         } catch (error) {
             console.error('Error caching video:', error);
         }

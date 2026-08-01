@@ -56,93 +56,66 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(searchTerm)}`);
     if (!res.ok) {
       console.warn(`Fetch error: ${res.status}`);
-    } 
+      setLoading(false);
+      return;
+    }
     const data = await res.json();
 
     setResults(data);
     setLoading(false);
   };
 
+  type ResolveResult = { videoId?: string; videos?: string[]; error?: string };
+  const resolveVideo = (searchTerm: string, skipCache = false) =>
+    new Promise<ResolveResult>((resolve) =>
+      socket.emit('user:resolveVideo', { searchTerm, skipCache }, resolve));
+
   // Add song to queue
   const addSong = async(title: string, artists: string[], albumImage: string) => {
-    console.log("addSong: Starting");
     setAdding(true);
     const searchTerm = `${title} ${artists[0]} karaoke`;
-    console.log(`searchTerm: ${searchTerm}`);
 
-    // Check cache first
-    console.log("addSong: Emitting user:checkCache");
-    socket.emit('user:checkCache', { searchTerm }, async (response: { videoId: string | null }) => {
-      console.log("addSong: checkCache callback fired with response:", response);
-      let playable: string;
-
-      if (response.videoId) {
-        console.log('Found cached video');
-        const isStillPlayable = await checkVideo(response.videoId);
-
-        if (isStillPlayable) {
-          console.log('Cached video is still playable, adding song');
-          playable = response.videoId;
-
-          socket.emit('user:addSong', {
-            code: roomCode,
-            userId,
-            title: title,
-            artists: artists,
-            videoId: playable,
-            albumImage,
-          });
-
-          setResults([]);
-          setSearchTerm("");
-          setAdding(false);
-          return;
-        } else {
-          console.log('Cached video no longer playable, falling back to search');
-        }
-      }
-
-      // Cache miss or cached video not playable - use existing logic
-      const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchTerm)}`);
-      if (!res.ok) {
-        console.warn(`Fetch error: ${res.status}`);
-        setAdding(false);
-        return;
-      }
-      console.log("Searched YT");
-
-      const data = await res.json();
-      const videos = data.videos;
-
-      if (!videos.length) {
-        console.warn('No videos found');
-        setAdding(false);
-        return;
-      }
-
-      console.log("Trying videos");
-      try {
-        playable = await findVideo(videos);
-        socket.emit('user:cacheVideo', { searchTerm, videoId: playable });
-      } catch (err) {
-        console.warn('No playable videos found', err);
-        setAdding(false);
-        return;
-      }
-
+    const queueSong = (videoId: string) => {
       socket.emit('user:addSong', {
         code: roomCode,
         userId,
         title: title,
         artists: artists,
-        videoId: playable,
+        videoId,
         albumImage,
       });
 
       setResults([]);
       setSearchTerm("");
       setAdding(false);
-    });
+    };
+
+    let result = await resolveVideo(searchTerm);
+
+    if (result.videoId) {
+      if (await checkVideo(result.videoId)) return queueSong(result.videoId);
+
+      // Bypass the stale entry
+      console.log('Cached video no longer playable, falling back to search');
+      result = await resolveVideo(searchTerm, true);
+    }
+
+    const videos = result.videos ?? [];
+    if (!videos.length) {
+      console.warn(result.error ?? 'No videos found');
+      setAdding(false);
+      return;
+    }
+
+    try {
+      const playable = await findVideo(videos);
+      socket.emit('user:cacheVideo', { searchTerm, videoId: playable });
+      queueSong(playable);
+    } catch (err) {
+      console.warn('No playable videos found', err);
+      socket.emit('user:cacheVideo', { searchTerm, videoId: null });
+      setAdding(false);
+    }
   };
 
   // Remove song from queue

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { spotifyCache, SpotifyTrack } from '../cache/redisCache';
 
 export const spotifyRouter = Router();
 
@@ -47,8 +48,11 @@ spotifyRouter.get('/search', async (req, res) => {
     }
 
     try {
+        const cached = await spotifyCache.get(q);
+        if (cached) return res.json(cached);
+
         const token = await getSpotifyToken();
-        
+
         const url = new URL('https://api.spotify.com/v1/search');
         url.searchParams.append('q', q);
         url.searchParams.append('type', 'track');
@@ -75,12 +79,14 @@ spotifyRouter.get('/search', async (req, res) => {
         const data = await resp.json();
         const items = data?.tracks?.items ?? [];
 
-        const results = items.map((track: any) => ({
+        const results: SpotifyTrack[] = items.map((track: any) => ({
             trackId: track.id,
             trackName: track.name,
             artists: track.artists.map((artist: any) => artist.name),
             albumImage: track.album?.images?.[0]?.url ?? null,
         }));
+
+        await spotifyCache.set(q, results);
 
         return res.json(results);
     } catch (err: any) {
