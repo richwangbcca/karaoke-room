@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
@@ -31,6 +32,24 @@ const MAX_TITLE = 200;
 const MAX_ARTISTS = 5;
 
 const app = express();
+
+// Security headers. The default CSP would block everything this app loads from third parties, so it
+// is tailored to exactly the origins in use: the YouTube iframe player and its API script, Spotify's
+// album-art CDN, Google Fonts, and the socket.io connection. Keep this in sync with index.html and
+// react-youtube if those change.
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", 'https://www.youtube.com'],       // react-youtube loads the iframe API
+            frameSrc: ['https://www.youtube.com', 'https://www.youtube-nocookie.com'],
+            imgSrc: ["'self'", 'data:', 'https://*.scdn.co', 'https://*.spotifycdn.com'],
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+            fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+            connectSrc: ["'self'", 'ws:', 'wss:'],                  // socket.io websocket + polling
+        },
+    },
+}));
 
 // Behind a reverse proxy the socket's remote address is the proxy, so req.ip would be the same for
 // everyone and the limiters below would share one bucket. Trust the first hop so req.ip is the real
