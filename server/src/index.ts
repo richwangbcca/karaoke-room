@@ -319,6 +319,7 @@ io.on('connection', (socket) => {
         const user = room.users.get(userId);
         if(!user) return;
 
+        cancelUserRemoval(userId); // no dangling grace timer for a user the host just removed
         const success = room.removeUser(userId);
         if(!success) return;
 
@@ -361,7 +362,32 @@ io.on('connection', (socket) => {
         io.to(code).emit('room:update', publicUsers(room));
         console.log(`${cleanedName} joined room ${code}`);
 
-        done({ success: true, userId: user.id });
+        done({ success: true, userId: user.id, token: user.token });
+    });
+
+    // Reclaim a guest identity after a phone slept or the tab reloaded. The token is the credential;
+    // userId alone is public (it rides along in the queue), so a replayed userId must not be enough.
+    socket.on('user:resume', ({ code, userId, token }, callback) => {
+        const done = typeof callback === 'function' ? callback : () => {};
+
+        const room = rooms.get(code);
+        if (!room) return done({ error: 'Room not found' });
+
+        const user = room.users.get(userId);
+        if (!user || user.token !== token) return done({ error: 'Invalid session' });
+
+        cancelUserRemoval(userId);           // the reconnect beat the grace timer
+        socketRoomMap.delete(user.socketId); // drop the dead socket's mappings
+        socketUserIdMap.delete(user.socketId);
+        user.socketId = socket.id;
+        socket.join(code);
+        socketRoomMap.set(socket.id, code);
+        socketUserIdMap.set(socket.id, userId);
+
+        socket.emit('queue:update', room.getQueue()); // rebuild the guest's view
+        console.log(`${user.name} rejoined room ${code}`);
+
+        done({ success: true, userId });
     });
 
     socket.on('user:leaveRoom', ({ code }) => {
@@ -514,10 +540,18 @@ io.on('connection', (socket) => {
             return;
         }
 
-        if(userId) {
-            room.removeUser(userId);
-            io.to(code).emit('room:update', publicUsers(room));
-            io.to(code).emit('queue:update', room.getQueue());
+        // Hold the guest and their queued songs briefly so a slept phone or a reload can reclaim
+        // them via user:resume, rather than silently dropping them and their queue mid-party.
+        if(userId && room.users.has(userId)) {
+            cancelUserRemoval(userId);
+            pendingUserRemoval.set(userId, setTimeout(() => {
+                pendingUserRemoval.delete(userId);
+                const r = rooms.get(code);
+                if (!r) return;
+                r.removeUser(userId);
+                io.to(code).emit('room:update', publicUsers(r));
+                io.to(code).emit('queue:update', r.getQueue());
+            }, GRACE_MS));
         }
     });
 });

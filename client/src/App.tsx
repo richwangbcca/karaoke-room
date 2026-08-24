@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import UserView from './components/UserView';
 import HostView from './components/HostView';
-import { loadHost, clearHost } from './session';
+import { loadHost, clearHost, loadGuest, clearGuest } from './session';
 
 async function validateRoom(roomCode: string): Promise<boolean> {
   try {
@@ -14,15 +14,19 @@ async function validateRoom(roomCode: string): Promise<boolean> {
 }
 
 function App() {
-  // Restore a prior role on reload so a host refresh lands back in their room instead of the home
-  // screen (the room itself is reclaimed inside HostView via its saved token).
-  const [role, setRole] = useState<'host' | 'user' | null>(() => (loadHost() ? 'host' : null));
-  const [name, setName] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+  // Restore a prior role on reload so a host refresh, or a guest whose phone slept, lands back in
+  // their room instead of the home screen. The room/identity itself is reclaimed inside the view via
+  // the saved token; here we only recover which screen to show and, for a guest, their name and code.
+  const savedGuest = loadGuest();
+  const [role, setRole] = useState<'host' | 'user' | null>(
+    () => (loadHost() ? 'host' : savedGuest ? 'user' : null));
+  const [name, setName] = useState(savedGuest?.name ?? "");
+  const [roomCode, setRoomCode] = useState(savedGuest?.code ?? "");
   const [error, setError] = useState<string | null>(null);
 
   const exit = () => {
     clearHost();
+    clearGuest();
     setRole(null);
     setName('');
     setRoomCode('');

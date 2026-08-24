@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Search } from 'lucide-react';
 import socket from '../socket';
+import { loadGuest, saveGuest, clearGuest } from '../session';
 
 export type UserViewProps = { userName: string; code: string; onExit: ()=> void };
 
@@ -24,21 +25,43 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   // Connect to room and to queue/user-specific events
   useEffect(() => {
     if (!name || !roomCode) return;
-    socket.connect();
-    socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
-      if (res.error) return alert(res.error);
-      setUserId(res.userId);
-    });
+
+    const joinFresh = () => {
+      socket.emit('user:joinRoom', { code: roomCode, name }, (res: any) => {
+        if (res.error) { alert(res.error); return onExit(); }
+        setUserId(res.userId);
+        saveGuest({ code: roomCode, userId: res.userId, token: res.token, name });
+      });
+    };
+
+    // Runs on first connect and after every reconnect (phone woke, tab reloaded). A saved session
+    // for this room reclaims the same identity and queue via its token; otherwise join fresh.
+    const onConnect = () => {
+      const saved = loadGuest();
+      if (saved && saved.code === roomCode) {
+        socket.emit('user:resume', { code: saved.code, userId: saved.userId, token: saved.token }, (res: any) => {
+          if (res.error) { clearGuest(); joinFresh(); }
+          else setUserId(res.userId);
+        });
+      } else {
+        joinFresh();
+      }
+    };
 
     const handleQueueUpdate = (queue: any[]) => setQueue(queue);
     const handleRemoveUser = () => onExit();
     const handleCloseRoom = () => onExit();
 
+    socket.on('connect', onConnect);
     socket.on('queue:update', handleQueueUpdate);
     socket.on('host:removeUser', handleRemoveUser);
     socket.on('host:closeRoom', handleCloseRoom);
 
+    if (socket.connected) onConnect();
+    else socket.connect();
+
     return () => {
+      socket.off('connect', onConnect);
       socket.off('queue:update', handleQueueUpdate);
       socket.off('host:removeUser', handleRemoveUser);
       socket.off('host:closeRoom', handleCloseRoom);
@@ -90,6 +113,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   // User leaves room
   const leaveRoom = async() => {
     socket.emit('user:leaveRoom', {code: roomCode});
+    clearGuest();
     onExit();
   }
 

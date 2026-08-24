@@ -201,6 +201,48 @@ async function main() {
     assert.strictEqual(flooded, accepted, 'only the accepted songs should be queued');
     flooder.close();
 
+    // --- a guest reclaims its identity and queue after a reconnect ---
+    const napper = await open();
+    const nap = await ask<{ userId: string; token: string }>(napper, 'user:joinRoom', { code, name: 'napper' });
+    assert.ok(nap.token, 'join must hand back a resume token');
+    await ask(napper, 'user:addSong', { code, title: 'nap-song', artists: ['x'] });
+    await settle();
+    assert.ok(queue.some((s: any) => s.requestedBy === nap.userId), 'the guest song is queued');
+
+    napper.close();                // phone sleeps
+    await wait(100);               // within the 250ms grace
+    assert.ok(rooms.get(code).users.has(nap.userId), 'a slept guest is held during the grace window');
+    assert.ok(queue.some((s: any) => s.requestedBy === nap.userId), 'their queued song is held too');
+
+    // the public userId is not a credential - a wrong token cannot steal the identity
+    const thief = await open();
+    const stolen = await ask<any>(thief, 'user:resume', { code, userId: nap.userId, token: 'wrong' });
+    assert.ok(stolen.error, 'a wrong token must not reclaim a guest identity');
+    thief.close();
+
+    // the real guest resumes with its token, songs intact, and controls its queue on the new socket
+    const woke = await open();
+    let wokeQueue: any[] = [];
+    woke.on('queue:update', (q: any[]) => { wokeQueue = q; });
+    const guestResume = await ask<any>(woke, 'user:resume', { code, userId: nap.userId, token: nap.token });
+    assert.strictEqual(guestResume.success, true, 'the guest reclaims its identity with the token');
+    await settle();
+    const napSong = wokeQueue.find((s: any) => s.requestedBy === nap.userId && s.title === 'nap-song');
+    assert.ok(napSong, 'the resumed guest sees its queue');
+    woke.emit('user:removeSong', { code, songId: napSong.id });
+    await settle();
+    assert.ok(!wokeQueue.some((s: any) => s.id === napSong.id), 'the resumed socket owns the reclaimed queue');
+
+    // after the grace expires with nobody back, the guest and their songs are dropped
+    const gone = await open();
+    const g2 = await ask<{ userId: string }>(gone, 'user:joinRoom', { code, name: 'gone' });
+    await ask(gone, 'user:addSong', { code, title: 'gone-song', artists: ['x'] });
+    await settle();
+    gone.close();
+    await wait(450);               // past the grace window
+    assert.ok(!rooms.get(code).users.has(g2.userId), 'a guest nobody reclaims is removed after grace');
+    assert.ok(!queue.some((s: any) => s.requestedBy === g2.userId), 'their songs go with them');
+
     // --- the real host still works ---
     queue.slice(1).forEach((s: any) => host.emit('host:removeSong', { code, songId: s.id }));
     await settle();
@@ -288,7 +330,7 @@ async function main() {
     assert.strictEqual(await connectsWithOrigin('http://192.168.1.50.evil.com'), false,
         'a public host that merely looks private must be rejected');
 
-    console.log('OK - host, guest identity, input, flood, room lifetime, host resume and origin guards hold');
+    console.log('OK - host, guest identity, input, flood, room lifetime, host + guest resume and origin guards hold');
     process.exit(0);
 }
 
