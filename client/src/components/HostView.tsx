@@ -154,7 +154,7 @@ export default function HostView({ onExit }: HostViewProps) {
           {[...members].map(([userId, userObject]) => (
             <li className="member-card" key={userId}>
               <p>{userObject.name}</p>
-              <button onClick={() => removeMember(userId)}><Minus /></button>
+              <button onClick={() => removeMember(userId)} aria-label={`Remove ${userObject.name}`}><Minus /></button>
             </li>
           ))}
         </ul>
@@ -201,7 +201,7 @@ export default function HostView({ onExit }: HostViewProps) {
 
         <div className="room-info">
           <h2 className="room-code">Room Code: {roomCode}</h2>
-          <p>Join at placeholder.com</p>
+          <p>Join at {window.location.host}</p>
         </div>
 
         <div className="queue-info">

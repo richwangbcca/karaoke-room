@@ -71,8 +71,9 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     setAdding(true);
     setAddError('');
 
+    // No userId: the server identifies the guest by their socket, not by what the page claims.
     const res = await new Promise<{ ok?: boolean; error?: string }>((resolve) =>
-      socket.emit('user:addSong', { code: roomCode, userId, title, artists, albumImage }, resolve));
+      socket.emit('user:addSong', { code: roomCode, title, artists, albumImage }, resolve));
 
     setAdding(false);
     if (res.error) return setAddError(res.error);
@@ -88,7 +89,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
 
   // User leaves room
   const leaveRoom = async() => {
-    socket.emit('user:leaveRoom', {code: roomCode, userId});
+    socket.emit('user:leaveRoom', {code: roomCode});
     onExit();
   }
 
@@ -98,7 +99,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
       <h2>What do you want to sing, {name}?</h2>
       <form action={search} className="search-bar">
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
-        <button onClick={search}><Search size={24}/></button>
+        <button type="submit" aria-label="Search"><Search size={24}/></button>
       </form>
       {addError && <p className="add-error">{addError}</p>}
       {loading ? (
@@ -107,12 +108,12 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
         <ul>
           {results.map((r) => (
             <li className="song-card" key={r.trackId}>
-              <img className="album" src={r.albumImage}/>
+              <img className="album" src={r.albumImage} alt=""/>
               <div className="track-text">
-                <p className="track-name">{r.trackName}</p> 
-                <p className="artists">{r.artists.join(', ')}</p> 
+                <p className="track-name">{r.trackName}</p>
+                <p className="artists">{r.artists.join(', ')}</p>
               </div>
-              <button onClick={() => addSong(r.trackName, r.artists, r.albumImage)} disabled={adding}><Plus size={24}/></button>
+              <button onClick={() => addSong(r.trackName, r.artists, r.albumImage)} disabled={adding} aria-label={`Add ${r.trackName}`}><Plus size={24}/></button>
             </li>
           ))}
         </ul>
@@ -122,12 +123,12 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
       <ul>
         {queue.slice(1).filter(q => q.requestedBy === userId).map((q) => (
           <li className="song-card" key={q.id}>
-            <img className="album" src={q.albumImage}/>
+            <img className="album" src={q.albumImage} alt=""/>
             <div className="track-text">
-              <p className="track-name">{q.title}</p> 
-              <p className="artists">{q.artists.join(', ')}</p> 
+              <p className="track-name">{q.title}</p>
+              <p className="artists">{q.artists.join(', ')}</p>
             </div>
-            <button onClick={() => removeSong(q.id)}><Minus size={24}/></button>
+            <button onClick={() => removeSong(q.id)} aria-label={`Remove ${q.title}`}><Minus size={24}/></button>
           </li>
         ))}
       </ul>
@@ -135,10 +136,10 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
       <ul>
         {queue.slice(1).map((q) => (
           <li className="song-card" key={q.id}>
-            <img className="album" src={q.albumImage}/>
+            <img className="album" src={q.albumImage} alt=""/>
             <div className="track-text">
-              <p className="track-name">{q.title}</p> 
-              <p className="artists">{q.artists.join(', ')}</p> 
+              <p className="track-name">{q.title}</p>
+              <p className="artists">{q.artists.join(', ')}</p>
             </div>
           </li>
         ))}

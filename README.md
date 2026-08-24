@@ -23,8 +23,8 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 
 ### Planned Features/Developer TODO
 - Randomize messages when no songs are playing
-- Utilize cookies for persistent user IDs
-- Rate limit song lookups per room (YouTube allows only ~100 uncached searches/day by default)
+- Utilize cookies for persistent user IDs, so a phone that sleeps does not lose its queued songs
+- Persistent host token, so a host can refresh the page without losing the room
 
 ## Stack and Tools
 - Frontend: TypeScript, React
@@ -61,9 +61,22 @@ SPOTIFY_CLIENT_SECRET=your_client_secret
 YOUTUBE_API_KEY=your_youtube_api_key
 REDIS_URL=redis://localhost:6379
 
-# Optional. Only needed if the frontend is hosted on a different origin than the server;
-# socket connections are same-origin by default. Comma-separated.
+# Optional. Uncached song lookups allowed per 24h, since a YouTube search costs 100 of the
+# 10,000 units the free tier grants per day. Raise it if your quota is higher. Default 90.
+YOUTUBE_DAILY_SEARCHES=90
+
+# Comma-separated list of the origins the browser loads the page from. Optional in local
+# development, where loopback and LAN origins are allowed automatically. REQUIRED once the app is
+# reachable from a public hostname - a public origin matches nothing otherwise and every socket
+# connection is rejected. The server refuses to start without it when NODE_ENV=production.
 CLIENT_ORIGIN=https://your-frontend.example
+```
+### Hosting it publicly
+Build the client and run the server; it serves `client/dist` when that folder exists, so the whole
+thing is one process on one origin.
+```
+pnpm --filter client build
+NODE_ENV=production CLIENT_ORIGIN=https://your-domain.example pnpm --filter server start
 ```
 Start development servers
 ```

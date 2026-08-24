@@ -6,17 +6,19 @@ import { useTestDb } from './testDb';
 // Run: pnpm exec ts-node tests/testVideoCache.ts
 let apiCalls = 0;
 let nextItems: any[] = [];
+let nextStatus = 200;
 
 (global as any).fetch = async () => {
     apiCalls++;
     await new Promise((r) => setTimeout(r, 50));
-    return { ok: true, json: async () => ({ items: nextItems }) };
+    return { ok: nextStatus === 200, status: nextStatus, json: async () => ({ items: nextItems }) };
 };
 
 const song = (n: string) => `${n} karaoke`;
 
 async function main() {
     await useTestDb();
+    process.env.YOUTUBE_DAILY_SEARCHES = '20'; // read at load, so it must be set before the require
     const { resolveVideo } = require('../src/api/youtube');
     // Cache hit costs no quota
     nextItems = [{ id: { videoId: 'abc123' } }];
@@ -49,7 +51,25 @@ async function main() {
     assert.deepStrictEqual(b.videos, ['xyz789']);
     assert.strictEqual(apiCalls, 4, 'concurrent misses should share one search');
 
-    console.log(`OK - 4 API calls for 8 lookups`);
+    // A 403 is YouTube saying the day's quota is gone. Our own counter can be wrong - a restart
+    // clears it - so upstream wins and the rest of the day stops costing calls.
+    nextStatus = 403;
+    const refused = await resolveVideo(song('over-quota'));
+    assert.strictEqual(refused.quotaExhausted, true, 'a 403 must surface as an exhausted quota');
+    assert.strictEqual(apiCalls, 5, 'the refused search still reached the API once');
+
+    nextStatus = 200;
+    const later = await resolveVideo(song('after-quota'));
+    assert.strictEqual(later.quotaExhausted, true, 'the rest of the day must not search');
+    assert.strictEqual(apiCalls, 5, 'a lookup past the budget must not reach the API');
+    assert.strictEqual(await youtubeCache.get(song('after-quota')), undefined,
+        'nothing was searched, so nothing may be cached as a negative');
+
+    // The room can still sing whatever it already looked up
+    assert.strictEqual((await resolveVideo(miss)).videoId, 'abc123',
+        'a cached song must still play once the budget is gone');
+
+    console.log(`OK - 4 API calls for 8 lookups, budget and quota guards hold`);
     process.exit(0);
 }
 

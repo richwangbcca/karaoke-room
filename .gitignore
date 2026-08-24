@@ -17,8 +17,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # dotenv files
+# A trailing comment is not a comment here, it is part of the pattern
 .env
-.env.*  # covers things like .env.local, .env.production
+.env.*
 
 # Editor configs
 .vscode/

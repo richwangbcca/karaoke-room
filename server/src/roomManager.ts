@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Queue, Song } from './queueManager'
 
@@ -8,12 +9,17 @@ export class Room {
     hostId: string;
     users: Map<string, User>;
     queue: Queue;
+    // Search terms this room's player could not play. Scoped to the room, not shared: the host is
+    // the only one who can report a failure and they can already skip anything here, so a bad
+    // verdict costs them their own room and nobody else's. Dies with the room.
+    blocked: Set<string>;
 
     constructor(hostSocketId: string) {
         this.code = generateRoomCode();
         this.hostId = hostSocketId;
         this.users = new Map();
         this.queue = new Queue();
+        this.blocked = new Set();
     }
 
     addUser(user: User): boolean {
@@ -108,11 +114,15 @@ export class User {
 }
 
 
+// randomInt, not Math.random: V8's generator leaks its state through its output, so anyone who
+// creates a few rooms could predict the codes handed to everyone else.
 function generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789';
-    let code = Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const draw = () => Array.from({ length: 5 }, () => chars[randomInt(chars.length)]).join('');
+
+    let code = draw();
     while(rooms.has(code)) {
-        code = Array.from ({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        code = draw();
     }
     return code;
 }
