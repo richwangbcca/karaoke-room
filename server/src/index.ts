@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
@@ -30,6 +31,28 @@ const MAX_TITLE = 200;
 const MAX_ARTISTS = 5;
 
 const app = express();
+
+// Behind a reverse proxy the socket's remote address is the proxy, so req.ip would be the same for
+// everyone and the limiters below would share one bucket. Trust the first hop so req.ip is the real
+// client. Set TRUST_PROXY to the number of proxies in front if there is more than one.
+app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+
+// The search endpoint is unauthenticated and every miss spends a Spotify call plus a Redis write,
+// so it is the cheapest thing to abuse. /api/rooms is a room-code existence oracle. Both are keyed
+// per client IP.
+const searchLimiter = rateLimit({
+    windowMs: 60_000, limit: 20,
+    standardHeaders: true, legacyHeaders: false,
+    message: { error: 'Too many searches, slow down a moment' },
+});
+const apiLimiter = rateLimit({
+    windowMs: 60_000, limit: 100,
+    standardHeaders: true, legacyHeaders: false,
+    message: { error: 'Too many requests, slow down a moment' },
+});
+
+app.use('/api/spotify/search', searchLimiter);
+app.use('/api', apiLimiter);
 app.use('/api/spotify', spotifyRouter);
 const httpServer = createServer(app);
 

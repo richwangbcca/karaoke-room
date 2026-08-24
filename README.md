@@ -70,6 +70,10 @@ YOUTUBE_DAILY_SEARCHES=90
 # reachable from a public hostname - a public origin matches nothing otherwise and every socket
 # connection is rejected. The server refuses to start without it when NODE_ENV=production.
 CLIENT_ORIGIN=https://your-frontend.example
+
+# Optional. Number of reverse proxies in front of the server, so per-IP rate limits key on the real
+# client and not the proxy. Default 1 (one proxy, the usual deployment). Set 0 if nothing fronts it.
+TRUST_PROXY=1
 ```
 ### Hosting it publicly
 Build the client and run the server; it serves `client/dist` when that folder exists, so the whole
