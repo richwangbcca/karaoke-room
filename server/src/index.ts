@@ -473,7 +473,12 @@ io.on('connection', (socket) => {
 const clientDist = path.join(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
     app.use(express.static(clientDist));
-    app.use((_req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+    app.use((req, res) => {
+        // An unmatched /api path is a genuine 404, not a page - serving index.html there would hand
+        // an API caller HTML with a 200 and hide the real miss.
+        if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
+        res.sendFile(path.join(clientDist, 'index.html'));
+    });
 }
 
 const PORT = process.env.PORT || 3000;
