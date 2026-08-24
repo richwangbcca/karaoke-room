@@ -91,6 +91,32 @@ const io = new Server(httpServer, {
     allowRequest: (req, callback) => callback(null, originAllowed(req as any)),
 });
 
+// The HTTP limiters do not see the websocket handshake, so one IP could otherwise open thousands of
+// sockets and eat every room and user slot. Cap concurrent sockets per IP.
+const MAX_SOCKETS_PER_IP = Number(process.env.MAX_SOCKETS_PER_IP ?? 30);
+const socketsByIp = new Map<string, number>();
+
+// socket.io does not apply Express's trust-proxy, so read the forwarded client ourselves.
+const clientIp = (socket: { handshake: { address: string; headers: Record<string, any> } }): string => {
+    const fwd = socket.handshake.headers['x-forwarded-for'];
+    if (typeof fwd === 'string' && fwd) return fwd.split(',')[0].trim();
+    return socket.handshake.address;
+};
+
+io.use((socket, next) => {
+    const ip = clientIp(socket);
+    const count = socketsByIp.get(ip) ?? 0;
+    if (count >= MAX_SOCKETS_PER_IP) return next(new Error('Too many connections'));
+
+    socketsByIp.set(ip, count + 1);
+    socket.on('disconnect', () => {
+        const left = (socketsByIp.get(ip) ?? 1) - 1;
+        if (left <= 0) socketsByIp.delete(ip);
+        else socketsByIp.set(ip, left);
+    });
+    next();
+});
+
 // albumImage is rendered as an <img src> for everyone in the room, so it must stay on Spotify's CDN
 const SPOTIFY_IMAGE_HOSTS = ['scdn.co', 'spotifycdn.com'];
 
