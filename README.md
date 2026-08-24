@@ -20,11 +20,10 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 - Autoplay: Songs play on the hosts's screen without manual intervention.
 - Queue management: Users can remove their own songs, and hosts can remove any song, skip the current one, or remove users.
 - Concurrent sessions: Multiple rooms can run at the same time without interference.
+- Reconnect-safe sessions: a slept phone or a host page refresh reclaims the same room, identity, and queue within a short grace window, using a secret token held on the device.
 
 ### Planned Features/Developer TODO
 - Randomize messages when no songs are playing
-- Utilize cookies for persistent user IDs, so a phone that sleeps does not lose its queued songs
-- Persistent host token, so a host can refresh the page without losing the room
 
 ## Stack and Tools
 - Frontend: TypeScript, React
@@ -74,6 +73,13 @@ CLIENT_ORIGIN=https://your-frontend.example
 # Optional. Number of reverse proxies in front of the server, so per-IP rate limits key on the real
 # client and not the proxy. Default 1 (one proxy, the usual deployment). Set 0 if nothing fronts it.
 TRUST_PROXY=1
+
+# Optional. How long (ms) a room or guest is held after a socket drops, so a reconnect can reclaim
+# it. Default 45000.
+RECONNECT_GRACE_MS=45000
+
+# Optional. Max concurrent socket connections from one IP. Default 30.
+MAX_SOCKETS_PER_IP=30
 ```
 ### Hosting it publicly
 Build the client and run the server; it serves `client/dist` when that folder exists, so the whole
