@@ -1,15 +1,13 @@
 import 'dotenv/config';
 import assert from 'assert';
 import { io as connect, Socket } from 'socket.io-client';
+import { useTestDb } from './testDb';
 
 // Stub YouTube before index.ts loads so no quota is spent.
 (global as any).fetch = async () => ({
     ok: true,
     json: async () => ({ items: [{ id: { videoId: 'good1234567' } }] })
 });
-
-process.env.PORT = '3999';
-require('../src/index');
 
 const URL = 'http://localhost:3999';
 const open = () => new Promise<Socket>((resolve) => {
@@ -21,6 +19,11 @@ const ask = <T>(s: Socket, event: string, payload: any) =>
 const settle = () => new Promise((r) => setTimeout(r, 150));
 
 async function main() {
+    await useTestDb();
+    process.env.PORT = '3999';
+    require('../src/index');
+    await settle();
+
     const host = await open();
     const guest = await open();
     const outsider = await open();
@@ -31,19 +34,64 @@ async function main() {
     let queue: any[] = [];
     host.on('queue:update', (q: any[]) => { queue = q; });
 
-    // --- addSong is limited to videos the server offered this socket ---
-    const resolved = await ask<{ videos?: string[] }>(guest, 'user:resolveVideo', {
-        searchTerm: 'a song karaoke'
+    // --- the guest cannot choose the video at all; the server resolves it ---
+    const added = await ask<{ ok?: boolean; error?: string }>(guest, 'user:addSong', {
+        code, userId, title: 'ok', artists: ['x'],
+        albumImage: 'https://i.scdn.co/image/abc',
+        videoId: 'SHOCKVIDEO1'  // ignored - the server does its own lookup
     });
-    assert.deepStrictEqual(resolved.videos, ['good1234567']);
+    assert.strictEqual(added.ok, true, 'a valid song must be accepted');
+    assert.strictEqual(queue.length, 1);
+    assert.strictEqual(queue[0].videoId, null, 'unproven video must not be playable yet');
+    assert.deepStrictEqual(queue[0].candidates, ['good1234567'], 'server picks the candidates');
+    assert.strictEqual(queue[0].albumImage, 'https://i.scdn.co/image/abc', 'Spotify art must survive');
 
-    guest.emit('user:addSong', { code, userId, title: 'evil', artists: ['x'], videoId: 'SHOCKVIDEO1' });
-    await settle();
-    assert.strictEqual(queue.length, 0, 'an unvouched videoId must be rejected');
+    // --- albumImage cannot point off Spotify's CDN ---
+    for (const bad of [
+        'https://evil.com/pixel.gif',       // tracking pixel aimed at every guest
+        'http://i.scdn.co/image/abc',       // downgraded to http
+        'https://evil-scdn.co/pixel.gif',   // suffix that only looks like scdn.co
+        'javascript:alert(1)',
+        'not a url'
+    ]) {
+        await ask(guest, 'user:addSong', { code, userId, title: bad, artists: ['x'], albumImage: bad });
+        const song = queue.find((s: any) => s.title === bad);
+        assert.ok(song, `song should still queue for ${bad}`);
+        assert.strictEqual(song.albumImage, null, `albumImage must be dropped for ${bad}`);
+    }
 
-    guest.emit('user:addSong', { code, userId, title: 'ok', artists: ['x'], videoId: 'good1234567' });
+    // --- only the host can declare a video playable, and only from the offered candidates ---
+    const songId = queue[0].id;
+    guest.emit('host:videoResolved', { code, songId, videoId: 'good1234567' });
     await settle();
-    assert.strictEqual(queue.length, 1, 'a vouched videoId must be accepted');
+    assert.strictEqual(queue[0].videoId, null, 'a guest must not resolve a video');
+
+    host.emit('host:videoResolved', { code, songId, videoId: 'SHOCKVIDEO1' });
+    await settle();
+    assert.strictEqual(queue[0].videoId, null, 'even the host cannot inject a non-candidate');
+
+    host.emit('host:videoResolved', { code, songId, videoId: 'good1234567' });
+    await settle();
+    assert.strictEqual(queue[0].videoId, 'good1234567', 'the host proved it plays');
+
+    // --- only the host can blacklist a song, and only after its player exhausted the candidates ---
+    const duddy = queue[queue.length - 1];
+    guest.emit('host:videoFailed', { code, songId: duddy.id });
+    await settle();
+    assert.ok(queue.find((s: any) => s.id === duddy.id), 'a guest must not blacklist a song');
+
+    host.emit('host:videoFailed', { code, songId: duddy.id });
+    await settle();
+    assert.ok(!queue.find((s: any) => s.id === duddy.id), 'the host drops an unplayable song');
+
+    const { youtubeCache } = require('../src/cache/redisCache');
+    assert.strictEqual(await youtubeCache.get(duddy.searchTerm), null,
+        'exhausting real playback is a genuine negative result worth caching');
+
+    // Reset to a single song for the host-guard checks below
+    queue.slice(1).forEach((s: any) => host.emit('host:removeSong', { code, songId: s.id }));
+    await settle();
+    assert.strictEqual(queue.length, 1, 'host cleanup should leave one song');
 
     // --- host actions require being the host, not just knowing the code ---
     guest.emit('host:skipSong', { code });
@@ -76,7 +124,33 @@ async function main() {
     await settle();
     assert.strictEqual(closed, true, 'the host must still be able to close the room');
 
-    console.log('OK - host guard and addSong guard hold');
+    // --- origin checks: same-origin in, everything else out ---
+    const connectsWithOrigin = (origin: string) => new Promise<boolean>((resolve) => {
+        const s = connect(URL, {
+            transports: ['websocket'],
+            extraHeaders: { Origin: origin },
+            reconnection: false
+        });
+        s.on('connect', () => { s.close(); resolve(true); });
+        s.on('connect_error', () => { s.close(); resolve(false); });
+    });
+
+    // Proves the rejections below are the origin check, not a blanket failure.
+    // Note the Host header here is localhost:3999 while Origin is not - that is exactly what a
+    // proxy produces, since Vite and nginx both rewrite Host to the backend.
+    assert.strictEqual(await connectsWithOrigin('http://localhost:5173'), true,
+        'the dev server must connect');
+    assert.strictEqual(await connectsWithOrigin('http://192.168.1.50:5173'), true,
+        'a phone on the LAN must connect');
+    assert.strictEqual(await connectsWithOrigin('http://10.0.0.4:5173'), true,
+        'other private ranges must connect');
+
+    assert.strictEqual(await connectsWithOrigin('https://evil.example'), false,
+        'a public Origin must be rejected');
+    assert.strictEqual(await connectsWithOrigin('http://192.168.1.50.evil.com'), false,
+        'a public host that merely looks private must be rejected');
+
+    console.log('OK - host, addSong, albumImage and origin guards hold');
     process.exit(0);
 }
 

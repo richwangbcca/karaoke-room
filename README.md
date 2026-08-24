@@ -60,6 +60,10 @@ SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 YOUTUBE_API_KEY=your_youtube_api_key
 REDIS_URL=redis://localhost:6379
+
+# Optional. Only needed if the frontend is hosted on a different origin than the server;
+# socket connections are same-origin by default. Comma-separated.
+CLIENT_ORIGIN=https://your-frontend.example
 ```
 Start development servers
 ```

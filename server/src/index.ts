@@ -8,15 +8,58 @@ import { Room, User, rooms, socketRoomMap, socketUserIdMap } from './roomManager
 import { Song } from './queueManager'
 import { resolveVideo } from './api/youtube';
 import { spotifyRouter } from './api/spotify';
-import { youtubeCache, normalizeKey, NEGATIVE_TTL } from './cache/redisCache';
+import { youtubeCache, NEGATIVE_TTL } from './cache/redisCache';
+
+// How many candidates the host will try before giving up. Each costs up to TRIAL_TIMEOUT_MS of
+// loading screen, so this bounds the worst case the room ever sits through.
+const MAX_TRIALS = 4;
 
 const app = express();
 app.use('/api/spotify', spotifyRouter);
 const httpServer = createServer(app);
 
+// Same-origin by default - the client is served through a proxy and connects with a bare io().
+// Set CLIENT_ORIGIN (comma-separated) only if the frontend is hosted somewhere else.
+const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
+    .split(',').map(o => o.trim()).filter(Boolean);
+
+// Loopback and LAN origins. Comparing Origin against the Host header does not work: both the Vite
+// dev proxy and a production reverse proxy rewrite Host to the backend, and neither forwards
+// x-forwarded-host, so every browser connection would be rejected.
+const PRIVATE_ORIGIN = /^(localhost|\[?::1\]?|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|.+\.local)$/;
+
+// CORS would not stop a page connecting with transports: ['websocket'], so the check lives here.
+// Guests on the same network are the intended users; a public site is not.
+const originAllowed = (req: { headers: Record<string, any> }): boolean => {
+    const origin = req.headers.origin;
+    if (!origin) return true; // non-browser client; an origin check cannot help there
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        return PRIVATE_ORIGIN.test(new URL(origin).hostname);
+    } catch {
+        return false;
+    }
+};
+
 const io = new Server(httpServer, {
-    cors: { origin: '*' },
+    cors: { origin: allowedOrigins.length ? allowedOrigins : true },
+    allowRequest: (req, callback) => callback(null, originAllowed(req as any)),
 });
+
+// albumImage is rendered as an <img src> for everyone in the room, so it must stay on Spotify's CDN
+const SPOTIFY_IMAGE_HOSTS = ['scdn.co', 'spotifycdn.com'];
+
+const spotifyImageOrNull = (url: unknown): string | null => {
+    if (typeof url !== 'string') return null;
+    try {
+        const { protocol, hostname } = new URL(url);
+        const ok = protocol === 'https:' &&
+            SPOTIFY_IMAGE_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`));
+        return ok ? url : null;
+    } catch {
+        return null;
+    }
+};
 
 app.get('/api/rooms/:roomCode', (req, res) => {
   const roomCode = req.params.roomCode.toUpperCase();
@@ -28,11 +71,6 @@ app.get('/api/rooms/:roomCode', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
-    const issued = new Map<string, string[]>();
-
-    // Video ids this socket was actually offered, so a client can't queue arbitrary videos
-    // onto the host's screen by skipping the search flow.
-    const vouched = new Set<string>();
 
     // Knowing the room code is not authorization; host actions are tied to the host's socket.
     // Host identity is the socket, so a host reconnect orphans the room. fixing it needs a persistent 
@@ -138,35 +176,79 @@ io.on('connection', (socket) => {
         socket.leave(code);
     })
 
-    socket.on('user:addSong', ({ code, userId, title, artists, videoId, albumImage }) => {
+    socket.on('user:addSong', async ({ code, userId, title, artists, albumImage }, callback) => {
+        const done = typeof callback === 'function' ? callback : () => {};
+
         const room = rooms.get(code);
-        if(!room) return;
+        if(!room) return done({ error: 'Room not found' });
 
         const user = room.users.get(userId);
-        if(!user) return;
+        if(!user) return done({ error: 'User not in room' });
 
-        // Only videos this socket was offered by user:resolveVideo can be queued
-        if(!vouched.has(videoId)) {
-            console.warn(`Rejected unvouched videoId ${videoId} from ${socket.id}`);
-            return;
+        if (typeof title !== 'string' || !title.trim() || !Array.isArray(artists)) {
+            return done({ error: 'Invalid song' });
+        }
+
+        // Built here, not by the client, so the cache key and the search cannot be steered.
+        const searchTerm = `${title} ${artists[0] ?? ''} karaoke`.slice(0, 200);
+
+        let resolved;
+        try {
+            resolved = await resolveVideo(searchTerm);
+        } catch (error) {
+            console.error('Error resolving video:', error);
+            return done({ error: 'Video lookup failed' });
+        }
+
+        const candidates = (resolved.videos ?? []).slice(0, MAX_TRIALS);
+        if (!resolved.videoId && !candidates.length) {
+            return done({ error: 'No karaoke video found for that song' });
         }
 
         const song: Song = {
             id: uuidv4(),
             title,
             artists,
-            videoId,
+            videoId: resolved.videoId ?? null,
+            candidates,
+            searchTerm,
             requestedBy: userId,
             singer: user.name,
-            albumImage
+            albumImage: spotifyImageOrNull(albumImage)
         };
 
-        const success = user.addSong(song);
-        if (!success) {
-            console.log("addSong failed");
-            return;
-        }
+        if (!user.addSong(song)) return done({ error: 'Could not add song' });
 
+        io.to(code).emit('queue:update', room.getQueue());
+        done({ ok: true });
+    });
+
+    // The host is the only client that actually plays the video, so it is the only one that can
+    // tell whether it works. A guest's phone cannot - mobile browsers refuse to play hidden video.
+    socket.on('host:videoResolved', async ({ code, songId, videoId }) => {
+        const room = hostRoom(code);
+        if(!room) return;
+
+        const song = room.getQueue().find(s => s.id === songId);
+        if(!song || !song.candidates.includes(videoId)) return;
+
+        song.videoId = videoId;
+        await youtubeCache.set(song.searchTerm, videoId);
+
+        io.to(code).emit('queue:update', room.getQueue());
+    });
+
+    socket.on('host:videoFailed', async ({ code, songId }) => {
+        const room = hostRoom(code);
+        if(!room) return;
+
+        const song = room.getQueue().find(s => s.id === songId);
+        if(!song) return;
+
+        // Every candidate failed on a real player, so this is a genuine "no playable video"
+        await youtubeCache.set(song.searchTerm, null, NEGATIVE_TTL);
+
+        room.removeSong(songId);
         io.to(code).emit('queue:update', room.getQueue());
     });
 
@@ -184,45 +266,6 @@ io.on('connection', (socket) => {
         if(!success) return;
 
         io.to(code).emit('queue:update', room.getQueue());
-    });
-
-    socket.on('user:resolveVideo', async ({ searchTerm, skipCache }, callback) => {
-        try {
-            const result = await resolveVideo(searchTerm, Boolean(skipCache));
-
-            if (result.videos) {
-                issued.set(normalizeKey(searchTerm), result.videos);
-                result.videos.forEach(v => vouched.add(v));
-            }
-            if (result.videoId) vouched.add(result.videoId);
-
-            callback(result);
-        } catch (error) {
-            console.error('Error resolving video:', error);
-            callback({ error: 'Video lookup failed' });
-        }
-    });
-
-    // Only the client can tell whether a video actually plays, so it reports the winner back
-    // (or null if none of the candidates worked). Restricted to candidates we handed out.
-    socket.on('user:cacheVideo', async ({ searchTerm, videoId }) => {
-        try {
-            const key = normalizeKey(searchTerm);
-            const candidates = issued.get(key);
-            if (!candidates) return;
-
-            if (videoId === null) {
-                await youtubeCache.set(key, null, NEGATIVE_TTL);
-            } else if (candidates.includes(videoId)) {
-                await youtubeCache.set(key, videoId);
-            } else {
-                return;
-            }
-
-            issued.delete(key);
-        } catch (error) {
-            console.error('Error caching video:', error);
-        }
     });
 
     socket.on('disconnect', () => {

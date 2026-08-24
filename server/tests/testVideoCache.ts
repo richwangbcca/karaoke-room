@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import assert from 'assert';
-import { resolveVideo } from '../src/api/youtube';
+import { useTestDb } from './testDb';
 
 // Counts real YouTube calls without spending quota. Needs a running redis-server.
 // Run: pnpm exec ts-node tests/testVideoCache.ts
@@ -13,16 +13,18 @@ let nextItems: any[] = [];
     return { ok: true, json: async () => ({ items: nextItems }) };
 };
 
-const song = (n: string) => `${n} ${Date.now()} karaoke`;
+const song = (n: string) => `${n} karaoke`;
 
 async function main() {
+    await useTestDb();
+    const { resolveVideo } = require('../src/api/youtube');
     // Cache hit costs no quota
     nextItems = [{ id: { videoId: 'abc123' } }];
     const miss = song('hit');
     assert.deepStrictEqual((await resolveVideo(miss)).videos, ['abc123']);
     assert.strictEqual(apiCalls, 1, 'a miss should search');
 
-    // Only candidates the server issued can be cached, so simulate the client reporting back
+    // Only the host can confirm a video plays, so simulate it reporting the winner back
     const { youtubeCache } = require('../src/cache/redisCache');
     await youtubeCache.set(miss, 'abc123');
     assert.strictEqual((await resolveVideo(miss)).videoId, 'abc123');

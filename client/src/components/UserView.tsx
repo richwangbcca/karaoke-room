@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Plus, Minus, Search } from 'lucide-react';
-import { findVideo, checkVideo } from './videoHelper';
 import socket from '../socket';
 
 export type UserViewProps = { userName: string; code: string; onExit: ()=> void };
@@ -14,6 +13,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState('');
 
   // Establish user states
   useEffect(() => {
@@ -65,57 +65,20 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
     setLoading(false);
   };
 
-  type ResolveResult = { videoId?: string; videos?: string[]; error?: string };
-  const resolveVideo = (searchTerm: string, skipCache = false) =>
-    new Promise<ResolveResult>((resolve) =>
-      socket.emit('user:resolveVideo', { searchTerm, skipCache }, resolve));
-
-  // Add song to queue
+  // Add song to queue. The server finds the video and the host proves it plays - a phone cannot,
+  // because mobile browsers refuse to play hidden video.
   const addSong = async(title: string, artists: string[], albumImage: string) => {
     setAdding(true);
-    const searchTerm = `${title} ${artists[0]} karaoke`;
+    setAddError('');
 
-    const queueSong = (videoId: string) => {
-      socket.emit('user:addSong', {
-        code: roomCode,
-        userId,
-        title: title,
-        artists: artists,
-        videoId,
-        albumImage,
-      });
+    const res = await new Promise<{ ok?: boolean; error?: string }>((resolve) =>
+      socket.emit('user:addSong', { code: roomCode, userId, title, artists, albumImage }, resolve));
 
-      setResults([]);
-      setSearchTerm("");
-      setAdding(false);
-    };
+    setAdding(false);
+    if (res.error) return setAddError(res.error);
 
-    let result = await resolveVideo(searchTerm);
-
-    if (result.videoId) {
-      if (await checkVideo(result.videoId)) return queueSong(result.videoId);
-
-      // Bypass the stale entry
-      console.log('Cached video no longer playable, falling back to search');
-      result = await resolveVideo(searchTerm, true);
-    }
-
-    const videos = result.videos ?? [];
-    if (!videos.length) {
-      console.warn(result.error ?? 'No videos found');
-      setAdding(false);
-      return;
-    }
-
-    try {
-      const playable = await findVideo(videos);
-      socket.emit('user:cacheVideo', { searchTerm, videoId: playable });
-      queueSong(playable);
-    } catch (err) {
-      console.warn('No playable videos found', err);
-      socket.emit('user:cacheVideo', { searchTerm, videoId: null });
-      setAdding(false);
-    }
+    setResults([]);
+    setSearchTerm("");
   };
 
   // Remove song from queue
@@ -137,6 +100,7 @@ export default function UserView({ userName, code, onExit }: UserViewProps) {
         <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search song" />
         <button onClick={search}><Search size={24}/></button>
       </form>
+      {addError && <p className="add-error">{addError}</p>}
       {loading ? (
         <div className="spinner"></div>
       ) : (
