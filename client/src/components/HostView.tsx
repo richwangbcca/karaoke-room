@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
 import YouTube, { YouTubePlayer, YouTubeEvent } from 'react-youtube'
 import { Minus } from 'lucide-react';
+import { loadHost, saveHost, clearHost } from '../session';
 
 export type HostViewProps = { onExit: ()=> void };
 
@@ -19,12 +20,27 @@ export default function HostView({ onExit }: HostViewProps) {
   const [membersOpen, setMembersOpen] = useState(false);
 
   useEffect(() => {
-    socket.connect();
+    const createRoom = () => {
+      socket.emit('host:createRoom', {}, (res: any) => {
+        if (res.error) return alert(res.error);
+        saveHost({ code: res.code, hostToken: res.hostToken });
+        setRoomCode(res.code);
+      });
+    };
 
-    socket.emit('host:createRoom', {}, (res: any) => {
-      if (res.error) alert(res.error);
-      else setRoomCode(res.code);
-    });
+    // Runs on the first connect and again after every reconnect (tab reload, wifi blip). A saved
+    // session reclaims the same room via its token; otherwise start a fresh one.
+    const onConnect = () => {
+      const saved = loadHost();
+      if (saved) {
+        socket.emit('host:resumeRoom', saved, (res: any) => {
+          if (res.error) { clearHost(); createRoom(); }
+          else setRoomCode(res.code);
+        });
+      } else {
+        createRoom();
+      }
+    };
 
     const handleQueueUpdate = (newQueue: any[]) => {
       const now = newQueue[0];
@@ -49,10 +65,16 @@ export default function HostView({ onExit }: HostViewProps) {
       setMembers(new Map(Object.entries(userMap)));
     };
 
+    socket.on('connect', onConnect);
     socket.on('queue:update', handleQueueUpdate);
     socket.on('room:update', handleRoomUpdate);
 
+    // on() only catches future connects; if the socket is already up, run once now.
+    if (socket.connected) onConnect();
+    else socket.connect();
+
     return () => {
+      socket.off('connect', onConnect);
       socket.off('queue:update', handleQueueUpdate);
       socket.off('room:update', handleRoomUpdate);
     };
@@ -135,6 +157,7 @@ export default function HostView({ onExit }: HostViewProps) {
   const closeRoom = () => {
     if (confirm("Are you sure you want to close this room?")) {
       socket.emit('host:closeRoom', { code: roomCode });
+      clearHost();
       onExit();
     } else {
       return;

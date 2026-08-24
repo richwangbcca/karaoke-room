@@ -18,9 +18,12 @@ const ask = <T>(s: Socket, event: string, payload: any) =>
     new Promise<T>((resolve) => s.emit(event, payload, resolve));
 const settle = () => new Promise((r) => setTimeout(r, 150));
 
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function main() {
     await useTestDb();
     process.env.PORT = '3999';
+    process.env.RECONNECT_GRACE_MS = '250'; // short grace so disconnect-cleanup tests are fast
     require('../src/index');
     await settle();
 
@@ -209,22 +212,55 @@ async function main() {
     await settle();
     assert.strictEqual(closed, true, 'the host must still be able to close the room');
 
-    // --- a room does not outlive its host ---
+    // --- a host reclaims its room after a reconnect; it only dies if nobody returns ---
     const ghost = await open();
-    const { code: ghostCode } = await ask<{ code: string }>(ghost, 'host:createRoom', {});
-    const stranded = await open();
+    const ghostRes = await ask<{ code: string; hostToken: string }>(ghost, 'host:createRoom', {});
+    const ghostCode = ghostRes.code;
+    const singer = await open();
+    await ask(singer, 'user:joinRoom', { code: ghostCode, name: 'singer' });
+    await ask(singer, 'user:addSong', { code: ghostCode, title: 'keep-me', artists: ['x'] });
+    await settle();
+
+    ghost.close();                 // host drops (reload / wifi blip)
+    await wait(100);               // still inside the 250ms grace
+    assert.ok(rooms.has(ghostCode), 'the room must survive briefly so the host can reconnect');
+
+    // knowing the code is not enough - a wrong token cannot seize the room
+    const impostor = await open();
+    const badResume = await ask<any>(impostor, 'host:resumeRoom', { code: ghostCode, hostToken: 'nope' });
+    assert.ok(badResume.error, 'a wrong host token must not reclaim the room');
+    impostor.close();
+
+    // the real host reclaims it with its token, queue intact, and controls work on the new socket
+    const back = await open();
+    let resumed: any[] = [];
+    back.on('queue:update', (q: any[]) => { resumed = q; });
+    const good = await ask<any>(back, 'host:resumeRoom', { code: ghostCode, hostToken: ghostRes.hostToken });
+    assert.strictEqual(good.code, ghostCode, 'the host reclaims its room with the token');
+    await settle();
+    assert.ok(resumed.some((s: any) => s.title === 'keep-me'), 'the queue survives the reconnect');
+    back.emit('host:skipSong', { code: ghostCode });
+    await settle();
+    assert.ok(!resumed.some((s: any) => s.title === 'keep-me'), 'the reclaimed host can control the room');
+
+    // let the grace expire with nobody back
     let evicted = false;
+    const stranded = await open();
     stranded.on('host:closeRoom', () => { evicted = true; });
     await ask(stranded, 'user:joinRoom', { code: ghostCode, name: 'stranded' });
-
-    assert.strictEqual((await ask<any>(ghost, 'host:createRoom', {})).code, ghostCode,
-        'a second create from one host socket must not orphan the first room');
-
-    ghost.close();
-    await settle();
-    assert.ok(!rooms.has(ghostCode), 'a room must not outlive the host that owns it');
-    assert.strictEqual(evicted, true, 'guests must be told the room is gone');
+    back.close();
+    await wait(450);               // past the grace window
+    assert.ok(!rooms.has(ghostCode), 'a room nobody reclaims is closed once the grace expires');
+    assert.strictEqual(evicted, true, 'guests are told when the room finally closes');
     stranded.close();
+
+    // a second create from one host socket must not orphan the first room
+    const twice = await open();
+    const firstCreate = await ask<any>(twice, 'host:createRoom', {});
+    const secondCreate = await ask<any>(twice, 'host:createRoom', {});
+    assert.strictEqual(secondCreate.code, firstCreate.code, 'one host socket keeps one room');
+    twice.close();
+    await wait(450);               // clear its grace timer before the process exits
 
     // --- origin checks: same-origin in, everything else out ---
     const connectsWithOrigin = (origin: string) => new Promise<boolean>((resolve) => {
@@ -252,7 +288,7 @@ async function main() {
     assert.strictEqual(await connectsWithOrigin('http://192.168.1.50.evil.com'), false,
         'a public host that merely looks private must be rejected');
 
-    console.log('OK - host, guest identity, input, flood, room lifetime and origin guards hold');
+    console.log('OK - host, guest identity, input, flood, room lifetime, host resume and origin guards hold');
     process.exit(0);
 }
 

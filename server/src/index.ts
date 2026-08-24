@@ -185,14 +185,32 @@ const takeAddToken = (socketId: string): boolean => {
 const publicUsers = (room: Room): Record<string, { id: string; name: string }> =>
     Object.fromEntries([...room.users.values()].map(u => [u.id, { id: u.id, name: u.name }]));
 
+// A phone that sleeps or a host tab that reloads drops the socket and reconnects as a brand new one.
+// Rather than tear things down the instant a socket dies, we hold the room/user for a grace window
+// so a reconnect (presenting its secret token) can reclaim the same identity, queue and all.
+const GRACE_MS = Number(process.env.RECONNECT_GRACE_MS ?? 45_000);
+const pendingHostClose = new Map<string, ReturnType<typeof setTimeout>>();   // code -> timer
+const pendingUserRemoval = new Map<string, ReturnType<typeof setTimeout>>();  // userId -> timer
+
+const cancelHostClose = (code: string): void => {
+    const t = pendingHostClose.get(code);
+    if (t) { clearTimeout(t); pendingHostClose.delete(code); }
+};
+const cancelUserRemoval = (userId: string): void => {
+    const t = pendingUserRemoval.get(userId);
+    if (t) { clearTimeout(t); pendingUserRemoval.delete(userId); }
+};
+
 // Used by the host's own close and by the host vanishing, which are the same thing to a guest.
 const closeRoom = (code: string, room: Room): void => {
     io.to(code).emit('host:closeRoom');
 
     room.users.forEach(user => {
         io.sockets.sockets.get(user.socketId)?.leave(code);
+        cancelUserRemoval(user.id); // room is gone; no pending removal should outlive it
     });
 
+    cancelHostClose(code);
     room.closeRoom();
     socketRoomMap.delete(room.hostId);
     rooms.delete(code);
@@ -248,7 +266,30 @@ io.on('connection', (socket) => {
         socket.join(code);
         socketRoomMap.set(socket.id, code); // so a host disconnect can find the room to close
 
-        done({ code });
+        done({ code, hostToken: room.hostToken });
+    });
+
+    // Reclaim a room after a host reload or wifi blip. The host token is the credential; knowing the
+    // room code is not enough, or any guest could seize the room.
+    socket.on('host:resumeRoom', ({ code, hostToken }, callback) => {
+        const done = typeof callback === 'function' ? callback : () => {};
+
+        const room = rooms.get(code);
+        if (!room) return done({ error: 'Room not found' });
+        if (room.hostToken !== hostToken) return done({ error: 'Not the host' });
+
+        cancelHostClose(code); // the reconnect beat the grace timer
+        socketRoomMap.delete(room.hostId); // drop the dead socket's mapping
+        room.hostId = socket.id;
+        socket.join(code);
+        socketRoomMap.set(socket.id, code);
+
+        // Rebuild the host's view from current state.
+        socket.emit('queue:update', room.getQueue());
+        socket.emit('room:update', publicUsers(room));
+        console.log(`Host reclaimed room ${code}`);
+
+        done({ code, hostToken: room.hostToken });
     });
 
     socket.on('host:skipSong', ({ code }) => {
@@ -461,9 +502,17 @@ io.on('connection', (socket) => {
         const room = rooms.get(code);
         if(!room) return;
 
-        // A host that closed its tab leaves a room nobody can play, skip or shut down. Without this
-        // it sits in memory until the process restarts.
-        if(room.hostId === socket.id) return closeRoom(code, room);
+        // Hold the room open briefly so a host reload or wifi blip can reclaim it via host:resumeRoom
+        // instead of dropping the whole party. Falls back to a real close if nobody returns.
+        if(room.hostId === socket.id) {
+            cancelHostClose(code);
+            pendingHostClose.set(code, setTimeout(() => {
+                pendingHostClose.delete(code);
+                const r = rooms.get(code);
+                if (r) closeRoom(code, r);
+            }, GRACE_MS));
+            return;
+        }
 
         if(userId) {
             room.removeUser(userId);

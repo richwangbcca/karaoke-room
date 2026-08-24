@@ -1,12 +1,18 @@
-import { randomInt } from 'crypto';
+import { randomInt, randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Queue, Song } from './queueManager'
 
 export const rooms = new Map<string, Room>();
 
+// A bearer secret for reconnecting. Distinct from the public id/code, which are broadcast: a resume
+// credential must never be something another client can see.
+const secret = (): string => randomBytes(24).toString('base64url');
+
 export class Room {
     code: string;
     hostId: string;
+    // Secret the host presents to reclaim the room after a reconnect. Never broadcast.
+    hostToken: string;
     users: Map<string, User>;
     queue: Queue;
     // Search terms this room's player could not play. Scoped to the room, not shared: the host is
@@ -17,6 +23,7 @@ export class Room {
     constructor(hostSocketId: string) {
         this.code = generateRoomCode();
         this.hostId = hostSocketId;
+        this.hostToken = secret();
         this.users = new Map();
         this.queue = new Queue();
         this.blocked = new Set();
@@ -76,11 +83,16 @@ export class User {
     id: string;
     name: string;
     socketId: string;
+    // Secret the guest presents to reclaim this identity after a reconnect. Unlike id, which is
+    // broadcast in the queue and member list, this never leaves the server except to its owner - so
+    // a guest cannot hijack another by replaying a userId they saw.
+    token: string;
 
     constructor(name: string, userSocketId: string) {
         this.id = uuidv4();
         this.name = name;
         this.socketId = userSocketId;
+        this.token = secret();
     }
 
     addSong(song: Song): boolean {

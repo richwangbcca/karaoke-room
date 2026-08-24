@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import UserView from './components/UserView';
 import HostView from './components/HostView';
+import { loadHost, clearHost } from './session';
 
 async function validateRoom(roomCode: string): Promise<boolean> {
   try {
@@ -13,10 +14,19 @@ async function validateRoom(roomCode: string): Promise<boolean> {
 }
 
 function App() {
-  const [role, setRole] = useState<'host' | 'user' | null>(null);
+  // Restore a prior role on reload so a host refresh lands back in their room instead of the home
+  // screen (the room itself is reclaimed inside HostView via its saved token).
+  const [role, setRole] = useState<'host' | 'user' | null>(() => (loadHost() ? 'host' : null));
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const exit = () => {
+    clearHost();
+    setRole(null);
+    setName('');
+    setRoomCode('');
+  };
 
   const joinRoom = async () => {
     if (!name.trim()) {
@@ -64,9 +74,9 @@ function App() {
     );
   }
 
- return role === 'host' ? 
- <HostView onExit={()=>{ setRole(null); setName(''); setRoomCode(''); }}/> 
- : <UserView userName={name} code={roomCode} onExit={()=>{ setRole(null); setName(''); setRoomCode(''); }}/>;
+ return role === 'host' ?
+ <HostView onExit={exit}/>
+ : <UserView userName={name} code={roomCode} onExit={exit}/>;
 }
 
 export default App;
