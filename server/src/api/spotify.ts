@@ -41,11 +41,16 @@ export async function getSpotifyToken(): Promise<string> {
     return cachedToken as string;
 }
 
+// Long enough for any real song-and-artist search, short enough that it cannot bloat a Redis key
+// or be used to push oversized queries upstream.
+const MAX_QUERY = 200;
+
 spotifyRouter.get('/search', async (req, res) => {
-    const q = req.query.q;
-    if (!q || typeof q !== 'string') {
+    const raw = req.query.q;
+    if (!raw || typeof raw !== 'string') {
         return res.status(400).json({ error: 'Missing or invalid query parameter' });
     }
+    const q = raw.trim().slice(0, MAX_QUERY);
 
     try {
         const cached = await spotifyCache.get(q);
@@ -66,14 +71,17 @@ spotifyRouter.get('/search', async (req, res) => {
 
         if (!resp.ok) {
             if (resp.status === 401) {
-                return res.status(500).json({ error: 'Spotify authentication failed (check client id/secret'});
+                console.error('Spotify auth failed - check SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET');
+                return res.status(500).json({ error: 'Song search is temporarily unavailable' });
             }
             if (resp.status === 429) {
                 const retryAfter = resp.headers.get('retry-after') || '1';
                 return res.status(429).set('Retry-After', retryAfter).json({ error: 'Rate limited by Spotify', retryAfter });
             }
-            const details = await resp.text();
-            return res.status(502).json( { error: "Spotify API error", status: resp.status, details });
+            // Log the upstream body server-side; do not echo it to the client, where it could carry
+            // internal detail and is nothing an end user can act on.
+            console.error(`Spotify search failed (${resp.status}):`, await resp.text());
+            return res.status(502).json({ error: 'Song search is temporarily unavailable' });
         }
 
         const data = await resp.json();
@@ -90,6 +98,7 @@ spotifyRouter.get('/search', async (req, res) => {
 
         return res.json(results);
     } catch (err: any) {
-        return res.status(500).json({ error: 'Search failed', details: String(err?.message ?? err)});
+        console.error('Spotify search error:', err);
+        return res.status(500).json({ error: 'Search failed' });
     }
 });
