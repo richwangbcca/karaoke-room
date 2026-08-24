@@ -180,6 +180,11 @@ const takeAddToken = (socketId: string): boolean => {
     return true;
 };
 
+// room:update goes to every guest, so it must carry only public fields. Serializing the User
+// objects directly would leak socketId (and, once added, the resume token). Send { id, name } only.
+const publicUsers = (room: Room): Record<string, { id: string; name: string }> =>
+    Object.fromEntries([...room.users.values()].map(u => [u.id, { id: u.id, name: u.name }]));
+
 // Used by the host's own close and by the host vanishing, which are the same thing to a guest.
 const closeRoom = (code: string, room: Room): void => {
     io.to(code).emit('host:closeRoom');
@@ -282,7 +287,7 @@ io.on('connection', (socket) => {
             toRemove.leave(code);
         }
 
-        io.to(code).emit('room:update', Object.fromEntries(room.users));
+        io.to(code).emit('room:update', publicUsers(room));
     });
 
     socket.on('host:closeRoom', ({ code }) => {
@@ -312,7 +317,7 @@ io.on('connection', (socket) => {
         socketRoomMap.set(socket.id, code);
         socketUserIdMap.set(socket.id, user.id);
 
-        io.to(code).emit('room:update', Object.fromEntries(room.users));
+        io.to(code).emit('room:update', publicUsers(room));
         console.log(`${cleanedName} joined room ${code}`);
 
         done({ success: true, userId: user.id });
@@ -323,7 +328,7 @@ io.on('connection', (socket) => {
         if(!guest) return;
 
         guest.room.removeUser(guest.user.id);
-        io.to(code).emit('room:update', Object.fromEntries(guest.room.users));
+        io.to(code).emit('room:update', publicUsers(guest.room));
         io.to(code).emit('queue:update', guest.room.getQueue());
 
         socket.leave(code);
@@ -462,7 +467,7 @@ io.on('connection', (socket) => {
 
         if(userId) {
             room.removeUser(userId);
-            io.to(code).emit('room:update', Object.fromEntries(room.users));
+            io.to(code).emit('room:update', publicUsers(room));
             io.to(code).emit('queue:update', room.getQueue());
         }
     });

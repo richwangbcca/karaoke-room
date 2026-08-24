@@ -34,7 +34,20 @@ async function main() {
     let queue: any[] = [];
     host.on('queue:update', (q: any[]) => { queue = q; });
 
-    // --- the guest cannot choose the video at all; the server resolves it ---
+    // --- room:update is broadcast to everyone, so it must carry only public fields ---
+    let lastMembers: any = {};
+    host.on('room:update', (m: any) => { lastMembers = m; });
+    const throwaway = await open(); // its own socket, so it does not rebind the guest's identity
+    await ask(throwaway, 'user:joinRoom', { code, name: 'peek' });
+    await settle();
+    const members = Object.values(lastMembers) as any[];
+    assert.ok(members.length >= 2, 'the broadcast should list the room members');
+    for (const member of members) {
+        assert.deepStrictEqual(Object.keys(member).sort(), ['id', 'name'],
+            'room:update must expose only id and name, never socketId or a resume token');
+    }
+    throwaway.close();
+    await settle();
     const added = await ask<{ ok?: boolean; error?: string }>(guest, 'user:addSong', {
         code, userId, title: 'ok', artists: ['x'],
         albumImage: 'https://i.scdn.co/image/abc',
