@@ -92,6 +92,16 @@ thing is one process on one origin.
 pnpm --filter client build
 NODE_ENV=production CLIENT_ORIGIN=https://your-domain.example pnpm --filter server start
 ```
+`CLIENT_ORIGIN` also decides the HTTPS-only security headers: when it starts with `https://` the
+server sends HSTS and `upgrade-insecure-requests`, and when it does not, both are omitted (asserting
+them over plain HTTP makes the browser fetch the app's own scripts over TLS that nothing is serving,
+and the page renders blank).
+
+Prefer HTTPS in any case. Guests and hosts hold a reconnect token in `localStorage` and send it over
+the socket, so on plain HTTP anyone sharing the wifi can read it and take over a room or a guest's
+identity. If you would rather not run a separate reverse proxy, [Caddy](https://caddyserver.com)
+gets a certificate on its own from a two-line config, and most PaaS hosts terminate TLS for you -
+remember to set `TRUST_PROXY=1` whenever something does sit in front.
 Start development servers
 ```
 pnpm start

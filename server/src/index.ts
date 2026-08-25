@@ -37,13 +37,35 @@ const MAX_ARTISTS = 5;
 
 const app = express();
 
+// Set CLIENT_ORIGIN (comma-separated) to the origin the browser loads the page from. Anything
+// public falls outside PRIVATE_ORIGIN below, so leaving it unset in production rejects every
+// connection - fail at boot rather than serving a site where nothing works.
+const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
+    .split(',').map(o => o.trim()).filter(Boolean);
+
+if (process.env.NODE_ENV === 'production' && !allowedOrigins.length) {
+    throw new Error(
+        'CLIENT_ORIGIN must list the public origin(s) in production, e.g. https://karaoke.example.com'
+    );
+}
+
+// Only claim HTTPS when we are actually served over it. upgrade-insecure-requests rewrites even
+// same-origin asset URLs to https://, so on a plain-HTTP deployment the page would fetch scripts
+// over TLS that nothing is listening on and render blank. localhost is exempt from that upgrade,
+// which means this breaks only once deployed to a real hostname. HSTS is equally pointless without
+// TLS. Both switch on automatically when CLIENT_ORIGIN says https.
+const servedOverHttps = allowedOrigins.some(o => o.startsWith('https://'));
+
 // Security headers. The default CSP would block everything this app loads from third parties, so it
 // is tailored to exactly the origins in use: the YouTube iframe player and its API script, Spotify's
 // album-art CDN, Google Fonts, and the socket.io connection. Keep this in sync with index.html and
 // react-youtube if those change.
 app.use(helmet({
+    hsts: servedOverHttps,
     contentSecurityPolicy: {
         directives: {
+            // null removes helmet's default; only assert this when TLS actually exists.
+            upgradeInsecureRequests: servedOverHttps ? [] : null,
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", 'https://www.youtube.com'],       // react-youtube loads the iframe API
             frameSrc: ['https://www.youtube.com', 'https://www.youtube-nocookie.com'],
@@ -90,18 +112,6 @@ app.use('/api/spotify/search', searchLimiter);
 app.use('/api', apiLimiter);
 app.use('/api/spotify', spotifyRouter);
 const httpServer = createServer(app);
-
-// Set CLIENT_ORIGIN (comma-separated) to the origin the browser loads the page from. Anything
-// public falls outside PRIVATE_ORIGIN below, so leaving it unset in production rejects every
-// connection - fail at boot rather than serving a site where nothing works.
-const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
-    .split(',').map(o => o.trim()).filter(Boolean);
-
-if (process.env.NODE_ENV === 'production' && !allowedOrigins.length) {
-    throw new Error(
-        'CLIENT_ORIGIN must list the public origin(s) in production, e.g. https://karaoke.example.com'
-    );
-}
 
 // Loopback and LAN origins. Comparing Origin against the Host header does not work: both the Vite
 // dev proxy and a production reverse proxy rewrite Host to the backend, and neither forwards

@@ -48,6 +48,7 @@ async function main() {
     process.env.PORT = String(PORT);
     process.env.MAX_SOCKETS_PER_IP = '5';
     delete process.env.TRUST_PROXY;          // exercise the default
+    process.env.CLIENT_ORIGIN = URL;         // a plain-http deployment, not whatever .env holds
     require('../src/index');
     await new Promise((r) => setTimeout(r, 400));
 
@@ -94,6 +95,16 @@ async function main() {
     const connectSrc = (csp.match(/connect-src([^;]*)/) ?? [])[1] ?? '';
     assert.ok(!/\sws:|\swss:/.test(connectSrc),
         `connect-src must not blanket-allow ws:/wss: to any host (got "${connectSrc.trim()}")`);
+
+    // --- HTTPS-only headers must not be asserted on a plain-HTTP deployment ---
+    // upgrade-insecure-requests rewrites same-origin asset URLs to https://, so on a plain-HTTP
+    // host the page fetches its own scripts over TLS that nothing serves and renders blank. This
+    // cannot be caught on localhost: it is exempt from the upgrade, so the bug only appears once
+    // deployed to a real hostname. CLIENT_ORIGIN here is http, so neither header may appear.
+    assert.ok(!/upgrade-insecure-requests/i.test(csp),
+        'upgrade-insecure-requests must be off when CLIENT_ORIGIN is not https - it blanks the page');
+    assert.strictEqual(res.headers.get('strict-transport-security'), null,
+        'HSTS must not be sent on a plain-HTTP deployment');
 
     console.log('OK - rate limits, socket cap, forged-XFF resistance and security headers hold');
     process.exit(0);
