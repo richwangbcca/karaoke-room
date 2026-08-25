@@ -1,0 +1,38 @@
+# Rename `app` to whatever `fly launch` reserves for you, then set CLIENT_ORIGIN below to match -
+# the server refuses to start in production without it, and rejects sockets from any other origin.
+app = "karaoke-room"
+primary_region = "sea"
+
+[build]
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+  # Fly's edge proxy sits in front of every request, so trust exactly that one hop. Without this
+  # every guest looks like the proxy and the whole room shares one rate-limit bucket.
+  TRUST_PROXY = "1"
+  # Must match the hostname guests actually load, including https://.
+  CLIENT_ORIGIN = "https://karaoke-room.fly.dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # Rooms, queues and reconnect tokens live in memory, so a stopped machine ends every party on it
+  # and a cold start greets a visitor with a blank wait. Keep one machine up rather than scaling to
+  # zero - that is the deliberate cost of running this 24/7.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    # Websockets are long-lived, so cap on open connections rather than request rate.
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+# One machine only. A second would get its own copy of the in-memory rooms, and a guest whose
+# socket landed on the other machine would not find their room.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

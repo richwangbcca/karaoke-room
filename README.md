@@ -91,10 +91,10 @@ SEARCH_RATE_PER_MIN=300  # /api/spotify/search requests per minute per IP
 API_RATE_PER_MIN=600     # all /api requests per minute per IP (a search spends one of these too)
 ```
 ### Hosting it publicly
-Build the client and run the server; it serves `client/dist` when that folder exists, so the whole
-thing is one process on one origin.
+Build both halves and run the compiled server; it serves `client/dist` when that folder exists, so
+the whole thing is one process on one origin.
 ```
-pnpm --filter client build
+pnpm build
 NODE_ENV=production CLIENT_ORIGIN=https://your-domain.example pnpm --filter server start
 ```
 `CLIENT_ORIGIN` also decides the HTTPS-only security headers: when it starts with `https://` the
@@ -107,6 +107,25 @@ the socket, so on plain HTTP anyone sharing the wifi can read it and take over a
 identity. If you would rather not run a separate reverse proxy, [Caddy](https://caddyserver.com)
 gets a certificate on its own from a two-line config, and most PaaS hosts terminate TLS for you -
 remember to set `TRUST_PROXY=1` whenever something does sit in front.
+
+#### Deploying to Fly.io
+A `Dockerfile` and `fly.toml` are included. Websockets need a process that stays up, so the config
+keeps one machine running rather than scaling to zero - rooms and reconnect tokens live in memory,
+and a stopped machine ends every party on it.
+```
+fly launch --no-deploy          # reserves an app name and region; keeps the included config
+fly redis create                # managed Redis; copy the rediss:// URL it prints
+fly secrets set \
+  SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \
+  YOUTUBE_API_KEY=... REDIS_URL=rediss://...
+fly deploy
+```
+Then edit `app` and `CLIENT_ORIGIN` in `fly.toml` to the hostname Fly gave you and deploy again -
+the server refuses to boot in production without `CLIENT_ORIGIN`, and rejects sockets from any other
+origin. Keep the API keys in `fly secrets`, never in `fly.toml`, which is committed.
+
+Stay on one machine. Each would hold its own copy of the in-memory rooms, so a guest whose socket
+landed on the other one would not find the room its host created.
 Start development servers
 ```
 pnpm start

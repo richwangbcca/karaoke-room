@@ -2,12 +2,14 @@
   "name": "karaoke-app",
   "private": true,
   "version": "0.0.1",
+  "packageManager": "pnpm@10.14.0",
   "workspaces": [
     "server",
     "client"
   ],
   "scripts": {
-    "start:server": "pnpm --filter server start",
+    "start:server": "pnpm --filter server dev",
+    "build": "pnpm --filter client build && pnpm --filter server build",
     "start:client": "pnpm --filter client dev",
     "start": "concurrently \"pnpm start:server\" \"pnpm start:client\""
   },
