@@ -82,8 +82,13 @@ TRUST_PROXY=0
 # it. Default 45000.
 RECONNECT_GRACE_MS=45000
 
-# Optional. Max concurrent socket connections from one IP. Default 30.
-MAX_SOCKETS_PER_IP=30
+# Optional. Per-IP limits. Everyone at a party is behind one wifi router, and guests on mobile data
+# may share a carrier NAT, so these are sized for a whole room rather than one person - raise them
+# if you raise the 50-guest room cap. The YouTube quota is protected separately (per socket and by
+# the daily budget), which is what actually stops one abusive client.
+MAX_SOCKETS_PER_IP=120   # concurrent sockets from one IP
+SEARCH_RATE_PER_MIN=300  # /api/spotify/search requests per minute per IP
+API_RATE_PER_MIN=600     # all /api requests per minute per IP (a search spends one of these too)
 ```
 ### Hosting it publicly
 Build the client and run the server; it serves `client/dist` when that folder exists, so the whole

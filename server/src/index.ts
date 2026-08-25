@@ -35,6 +35,31 @@ const MAX_NAME = 24;
 const MAX_TITLE = 200;
 const MAX_ARTISTS = 5;
 
+// Per-IP limits have to be sized for a crowd, not for one person. A room is one wifi network, so
+// every guest shares its public IP - and guests on mobile data can share a carrier NAT with total
+// strangers. Anything tuned per-user throttles the party itself, and the last guests to arrive
+// simply cannot connect.
+//
+// This is safe to be generous about because IP is not what guards the scarce resource: the YouTube
+// quota is capped per socket (ADD_BURST) and globally (the daily budget), which is where a single
+// abuser actually shows up. These caps only need to stop a flood, and they still do.
+const positiveEnv = (name: string, fallback: number): number => {
+    const value = Number(process.env[name] ?? fallback);
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+
+// Scaled off MAX_USERS so they stay right if a room's size ever changes.
+export const DEFAULT_SOCKETS_PER_IP = MAX_USERS * 2 + 20; // reconnect overlap + host + spare tabs
+export const DEFAULT_SEARCH_PER_MIN = MAX_USERS * 6;      // a whole room browsing at once
+export const DEFAULT_API_PER_MIN = MAX_USERS * 12;        // every search spends one of these too
+
+const MAX_SOCKETS_PER_IP = positiveEnv('MAX_SOCKETS_PER_IP', DEFAULT_SOCKETS_PER_IP);
+const SEARCH_PER_MIN = positiveEnv('SEARCH_RATE_PER_MIN', DEFAULT_SEARCH_PER_MIN);
+const API_PER_MIN = positiveEnv('API_RATE_PER_MIN', DEFAULT_API_PER_MIN);
+
+// A cap below room size would lock out real guests before the room is even full.
+export const ROOM_LIMITS = { MAX_USERS, DEFAULT_SOCKETS_PER_IP, DEFAULT_SEARCH_PER_MIN };
+
 const app = express();
 
 // Set CLIENT_ORIGIN (comma-separated) to the origin the browser loads the page from. Anything
@@ -98,12 +123,12 @@ app.set('trust proxy', TRUST_PROXY);
 // so it is the cheapest thing to abuse. /api/rooms is a room-code existence oracle. Both are keyed
 // per client IP.
 const searchLimiter = rateLimit({
-    windowMs: 60_000, limit: 20,
+    windowMs: 60_000, limit: SEARCH_PER_MIN,
     standardHeaders: true, legacyHeaders: false,
     message: { error: 'Too many searches, slow down a moment' },
 });
 const apiLimiter = rateLimit({
-    windowMs: 60_000, limit: 100,
+    windowMs: 60_000, limit: API_PER_MIN,
     standardHeaders: true, legacyHeaders: false,
     message: { error: 'Too many requests, slow down a moment' },
 });
@@ -137,8 +162,8 @@ const io = new Server(httpServer, {
 });
 
 // The HTTP limiters do not see the websocket handshake, so one IP could otherwise open thousands of
-// sockets and eat every room and user slot. Cap concurrent sockets per IP.
-const MAX_SOCKETS_PER_IP = Number(process.env.MAX_SOCKETS_PER_IP ?? 30);
+// sockets and eat every room and user slot. Cap concurrent sockets per IP (see MAX_SOCKETS_PER_IP
+// above, which is sized for a full room rather than a single guest).
 const socketsByIp = new Map<string, number>();
 
 // socket.io does not apply Express's trust-proxy, so resolve the client ourselves - with the same
