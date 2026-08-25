@@ -46,15 +46,27 @@ app.use(helmet({
             imgSrc: ["'self'", 'data:', 'https://*.scdn.co', 'https://*.spotifycdn.com'],
             styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
-            connectSrc: ["'self'", 'ws:', 'wss:'],                  // socket.io websocket + polling
+            // socket.io connects back to this origin, and 'self' already covers ws:/wss: to it.
+            // A blanket ws:/wss: would allow a websocket to ANY host - an open exfiltration path
+            // if script injection ever lands.
+            connectSrc: ["'self'"],
         },
     },
 }));
 
-// Behind a reverse proxy the socket's remote address is the proxy, so req.ip would be the same for
-// everyone and the limiters below would share one bucket. Trust the first hop so req.ip is the real
-// client. Set TRUST_PROXY to the number of proxies in front if there is more than one.
-app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+// How many reverse proxies sit in front of this server. X-Forwarded-For is client-supplied unless a
+// proxy appends to it, so this must default to 0 (trust nothing): with a non-zero default and no
+// proxy actually in front, anyone can forge the header and hand themselves a fresh rate-limit
+// bucket per request. Set it to the real number of proxies when deploying behind one.
+const TRUST_PROXY = Number.isInteger(Number(process.env.TRUST_PROXY))
+    ? Math.max(0, Number(process.env.TRUST_PROXY))
+    : 0;
+
+if (process.env.TRUST_PROXY !== undefined && !Number.isInteger(Number(process.env.TRUST_PROXY))) {
+    throw new Error(`TRUST_PROXY must be an integer number of proxies, got "${process.env.TRUST_PROXY}"`);
+}
+
+app.set('trust proxy', TRUST_PROXY);
 
 // The search endpoint is unauthenticated and every miss spends a Spotify call plus a Redis write,
 // so it is the cheapest thing to abuse. /api/rooms is a room-code existence oracle. Both are keyed
@@ -115,11 +127,23 @@ const io = new Server(httpServer, {
 const MAX_SOCKETS_PER_IP = Number(process.env.MAX_SOCKETS_PER_IP ?? 30);
 const socketsByIp = new Map<string, number>();
 
-// socket.io does not apply Express's trust-proxy, so read the forwarded client ourselves.
+// socket.io does not apply Express's trust-proxy, so resolve the client ourselves - with the same
+// rules Express uses, because getting this wrong silently disables the cap.
+//
+// X-Forwarded-For reads "client, proxy1, proxy2": each proxy APPENDS the peer it saw, so the
+// leftmost entry is whatever the original caller sent and is forgeable even behind a real proxy.
+// Only the rightmost TRUST_PROXY entries were written by infrastructure we control, so we walk in
+// from the right and never trust more hops than are actually deployed.
 const clientIp = (socket: { handshake: { address: string; headers: Record<string, any> } }): string => {
-    const fwd = socket.handshake.headers['x-forwarded-for'];
-    if (typeof fwd === 'string' && fwd) return fwd.split(',')[0].trim();
-    return socket.handshake.address;
+    if (TRUST_PROXY < 1) return socket.handshake.address;
+
+    const raw = socket.handshake.headers['x-forwarded-for'];
+    const forwarded = (Array.isArray(raw) ? raw.join(',') : raw ?? '')
+        .split(',').map((v: string) => v.trim()).filter(Boolean);
+
+    // The socket peer is the last trusted hop; step back one more for each additional proxy.
+    const hops = [...forwarded, socket.handshake.address];
+    return hops[Math.max(0, hops.length - 1 - TRUST_PROXY)];
 };
 
 io.use((socket, next) => {

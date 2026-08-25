@@ -70,9 +70,13 @@ YOUTUBE_DAILY_SEARCHES=90
 # connection is rejected. The server refuses to start without it when NODE_ENV=production.
 CLIENT_ORIGIN=https://your-frontend.example
 
-# Optional. Number of reverse proxies in front of the server, so per-IP rate limits key on the real
-# client and not the proxy. Default 1 (one proxy, the usual deployment). Set 0 if nothing fronts it.
-TRUST_PROXY=1
+# Number of reverse proxies in front of the server, so per-IP rate limits key on the real client
+# rather than the proxy. Default 0, meaning X-Forwarded-For is ignored entirely.
+# IMPORTANT: set this to the actual number of proxies (usually 1) when deploying behind nginx, a
+# load balancer, or a PaaS router - otherwise every client looks like the proxy and they all share
+# one rate-limit bucket. Do NOT set it higher than the number of proxies that really exist: each
+# extra hop is one more attacker-controlled X-Forwarded-For entry that gets trusted.
+TRUST_PROXY=0
 
 # Optional. How long (ms) a room or guest is held after a socket drops, so a reconnect can reclaim
 # it. Default 45000.
