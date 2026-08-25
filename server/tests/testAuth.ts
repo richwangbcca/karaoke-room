@@ -92,11 +92,11 @@ async function main() {
 
     // --- only the host can blacklist a song, and only after its player exhausted the candidates ---
     const duddy = queue[queue.length - 1];
-    guest.emit('host:videoFailed', { code, songId: duddy.id });
+    guest.emit('host:videoFailed', { code, songId: duddy.id, reason: 'error' });
     await settle();
     assert.ok(queue.find((s: any) => s.id === duddy.id), 'a guest must not blacklist a song');
 
-    host.emit('host:videoFailed', { code, songId: duddy.id });
+    host.emit('host:videoFailed', { code, songId: duddy.id, reason: 'error' });
     await settle();
     assert.ok(!queue.find((s: any) => s.id === duddy.id), 'the host drops an unplayable song');
 
@@ -108,7 +108,27 @@ async function main() {
     const readded = await ask<any>(guest, 'user:addSong', {
         code, userId, title: duddy.title, artists: duddy.artists
     });
-    assert.ok(readded.error, 'the room that proved it unplayable should stop offering it');
+    assert.ok(readded.error, 'a song the player rejected outright should stop being offered');
+
+    // --- a timed-out trial is not proof: slow wifi must not cost the party a good song ---
+    const flaky = await ask<any>(guest, 'user:addSong', { code, title: 'flaky-song', artists: ['x'] });
+    assert.strictEqual(flaky.ok, true, 'sanity: the song queues');
+    await settle();
+    const flakyId = queue.find((s: any) => s.title === 'flaky-song').id;
+
+    host.emit('host:videoFailed', { code, songId: flakyId, reason: 'timeout' });
+    await settle();
+    const afterOneTimeout = await ask<any>(guest, 'user:addSong', { code, title: 'flaky-song', artists: ['x'] });
+    assert.strictEqual(afterOneTimeout.ok, true,
+        'one timed-out trial must not blacklist a song - it may just have been slow');
+
+    // but a second timeout is a pattern, not a blip
+    await settle();
+    const flakyId2 = queue.find((s: any) => s.title === 'flaky-song').id;
+    host.emit('host:videoFailed', { code, songId: flakyId2, reason: 'timeout' });
+    await settle();
+    const afterTwo = await ask<any>(guest, 'user:addSong', { code, title: 'flaky-song', artists: ['x'] });
+    assert.ok(afterTwo.error, 'a song that repeatedly fails to start should stop being offered');
 
     // ...but only that room. Another host must not inherit a stranger's blacklist.
     const host2 = await open();

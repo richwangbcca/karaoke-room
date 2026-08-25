@@ -18,6 +18,10 @@ import { youtubeCache } from './cache/redisCache';
 // loading screen, so this bounds the worst case the room ever sits through.
 const MAX_TRIALS = 4;
 
+// Strikes before a room stops offering a song. A player error is worth the whole threshold (the
+// video really will not play); a bare timeout is worth one, so a single network stall is forgiven.
+const BLOCK_AFTER_STRIKES = 2;
+
 // The day's YouTube budget is enforced in resolveVideo, where it is actually spent. These are the
 // social limits: enough for an enthusiastic guest to load up their whole queue at once, not enough
 // to flood the room or the broadcast.
@@ -453,9 +457,10 @@ io.on('connection', (socket) => {
         // Built here, not by the client, so the cache key and the search cannot be steered.
         const searchTerm = `${cleanedTitle} ${cleanedArtists[0] ?? ''} karaoke`.slice(0, 200);
 
-        // Already proved unplayable on this room's screen; re-adding it would only cost quota.
-        if (room.blocked.has(searchTerm)) {
-            return done({ error: 'No karaoke video found for that song' });
+        // Already proved unplayable on this room's screen; re-adding it would only waste the room's
+        // time on another round of trials.
+        if (room.isBlocked(searchTerm, BLOCK_AFTER_STRIKES)) {
+            return done({ error: 'That one would not play on the host screen' });
         }
 
         let resolved;
@@ -508,17 +513,21 @@ io.on('connection', (socket) => {
         io.to(code).emit('queue:update', room.getQueue());
     });
 
-    socket.on('host:videoFailed', async ({ code, songId }) => {
+    socket.on('host:videoFailed', async ({ code, songId, reason }) => {
         const room = hostRoom(code);
         if(!room) return;
 
         const song = room.getQueue().find(s => s.id === songId);
         if(!song) return;
 
-        // Every candidate failed on this room's player, so stop offering it here. Deliberately not
-        // written to the shared cache: this verdict is a client's word, and the shared cache is
-        // read by every other room. resolveVideo still caches the negatives it observes itself.
-        room.blocked.add(song.searchTerm);
+        // Every candidate failed on this room's player. Deliberately not written to the shared
+        // cache: this verdict is a client's word, and the shared cache is read by every other room.
+        // resolveVideo still caches the negatives it observes itself.
+        //
+        // How much that verdict is worth depends on how the player failed. A real error means the
+        // video is genuinely unplayable here; a trial that merely timed out may just be slow wifi,
+        // so it takes two before the song stops being offered.
+        room.strike(song.searchTerm, reason === 'timeout' ? 1 : BLOCK_AFTER_STRIKES);
 
         room.removeSong(songId);
         io.to(code).emit('queue:update', room.getQueue());

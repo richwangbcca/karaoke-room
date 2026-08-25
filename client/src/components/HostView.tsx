@@ -56,6 +56,7 @@ export default function HostView({ onExit }: HostViewProps) {
         if (now?.id !== prevId) {
           setCandidates(now?.candidates ?? []);
           setTrial(0);
+          sawTimeout.current = false; // fresh song, fresh verdict
         }
         return now?.id ?? null;
       });
@@ -94,12 +95,23 @@ export default function HostView({ onExit }: HostViewProps) {
     trialTimer.current = null;
   };
 
-  const failCurrentTrial = () => {
+  // A candidate that timed out may just be slow wifi, while one the player rejected is genuinely
+  // unplayable. If any candidate merely timed out, the verdict for the song is not trustworthy, and
+  // the server treats it as provisional rather than blocking the song outright.
+  const sawTimeout = useRef(false);
+
+  const failCurrentTrial = (reason: 'timeout' | 'error') => {
     clearTrialTimer();
+    if (reason === 'timeout') sawTimeout.current = true;
+
     if (trial + 1 < candidates.length) {
       setTrial(trial + 1);
     } else {
-      socket.emit('host:videoFailed', { code: roomCode, songId: currentSongId });
+      socket.emit('host:videoFailed', {
+        code: roomCode,
+        songId: currentSongId,
+        reason: sawTimeout.current ? 'timeout' : 'error',
+      });
     }
   };
 
@@ -109,7 +121,7 @@ export default function HostView({ onExit }: HostViewProps) {
 
   useEffect(() => {
     if (!resolving) { clearTrialTimer(); return; }
-    trialTimer.current = setTimeout(failCurrentTrial, TRIAL_TIMEOUT_MS);
+    trialTimer.current = setTimeout(() => failCurrentTrial('timeout'), TRIAL_TIMEOUT_MS);
     return clearTrialTimer;
   }, [resolving, trial, currentSongId, candidates.length]);
 
@@ -134,7 +146,7 @@ export default function HostView({ onExit }: HostViewProps) {
   };
 
   const onPlayerError = () => {
-    if (resolving) failCurrentTrial();
+    if (resolving) failCurrentTrial('error');
     else skipSong();
   };
 

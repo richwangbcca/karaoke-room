@@ -15,10 +15,14 @@ export class Room {
     hostToken: string;
     users: Map<string, User>;
     queue: Queue;
-    // Search terms this room's player could not play. Scoped to the room, not shared: the host is
-    // the only one who can report a failure and they can already skip anything here, so a bad
-    // verdict costs them their own room and nobody else's. Dies with the room.
-    blocked: Set<string>;
+    // Failure strikes per search term for this room's player. Scoped to the room, not shared: the
+    // host is the only one who can report a failure and they can already skip anything here, so a
+    // bad verdict costs them their own room and nobody else's. Dies with the room.
+    //
+    // Counted rather than a flat blocklist because a failure is not always the song's fault - a
+    // stalled network times the trial out just like an unplayable video would, and one stall must
+    // not cost the party a good song for the rest of the night.
+    strikes: Map<string, number>;
 
     constructor(hostSocketId: string) {
         this.code = generateRoomCode();
@@ -26,7 +30,16 @@ export class Room {
         this.hostToken = secret();
         this.users = new Map();
         this.queue = new Queue();
-        this.blocked = new Set();
+        this.strikes = new Map();
+    }
+
+    // A definitive player error blocks at once; an ambiguous timeout needs a second opinion.
+    strike(searchTerm: string, weight: number): void {
+        this.strikes.set(searchTerm, (this.strikes.get(searchTerm) ?? 0) + weight);
+    }
+
+    isBlocked(searchTerm: string, threshold: number): boolean {
+        return (this.strikes.get(searchTerm) ?? 0) >= threshold;
     }
 
     addUser(user: User): boolean {
