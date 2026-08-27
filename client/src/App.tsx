@@ -55,8 +55,8 @@ function App() {
   if (!role) {
     return (
       <div className="home">
-        <h1>Karaoke Room 🎤</h1>
-        <h2>Join a room, add your songs, and sing together!</h2>
+        <h1>Karaoke Room</h1>
+        <h2>Join a room, add your songs, and sing together</h2>
         <div className="form">
           <div className="input-box">
             <label>Name</label>
