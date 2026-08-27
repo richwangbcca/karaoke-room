@@ -24,7 +24,6 @@ Hosts create a room and receive a unique code. Guests then join via this code fr
 - Reconnect-safe sessions: a slept phone or a host page refresh reclaims the same room, identity, and queue within a short grace window, using a secret token held on the device.
 
 ### Planned Features/Developer TODO
-- Randomize messages when no songs are playing
 
 ## Stack and Tools
 - Frontend: TypeScript, React

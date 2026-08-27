@@ -234,7 +234,6 @@ export default function HostView({ onExit }: HostViewProps) {
       ) : (
         <div className="theater">
           <p>No video playing.</p>
-          <p>Maybe some ABBA? Taylor Swift?</p>
         </div>
       )}
       <div className="footer">
