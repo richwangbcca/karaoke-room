@@ -120,7 +120,11 @@ fly secrets set \
   YOUTUBE_API_KEY=... REDIS_URL=rediss://...
 fly deploy
 fly scale count 1               # REQUIRED - fly launch gives you two machines
+fly secrets list                # confirm all four secrets are actually set
 ```
+`REDIS_URL` matters more than it looks. Without it the server falls back to `localhost`, where
+nothing is listening, and it logs a warning at boot in production. Searches still work, but nothing
+is cached, so the YouTube daily budget is gone within a handful of songs.
 Then edit `app` and `CLIENT_ORIGIN` in `fly.toml` to the hostname Fly gave you and deploy again -
 the server refuses to boot in production without `CLIENT_ORIGIN`, and rejects sockets from any other
 origin. Keep the API keys in `fly secrets`, never in `fly.toml`, which is committed. Note that

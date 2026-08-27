@@ -74,6 +74,15 @@ if (process.env.NODE_ENV === 'production' && !allowedOrigins.length) {
     );
 }
 
+// Not fatal - the app runs without a cache - but every lookup then misses, which burns the YouTube
+// daily budget within a handful of songs and makes each search pay a full Spotify round trip.
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+    console.warn(
+        'REDIS_URL is not set: running with no cache, falling back to localhost which almost ' +
+        'certainly is not running. Searches still work but nothing is cached.'
+    );
+}
+
 // Only claim HTTPS when we are actually served over it. upgrade-insecure-requests rewrites even
 // same-origin asset URLs to https://, so on a plain-HTTP deployment the page would fetch scripts
 // over TLS that nothing is listening on and render blank. localhost is exempt from that upgrade,
