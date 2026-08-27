@@ -1,7 +1,17 @@
+# IMPORTANT: run this app on EXACTLY ONE machine.  `fly scale count 1`
+#
+# Rooms, queues and reconnect tokens live in this process's memory, and socket.io's polling
+# handshake has to keep hitting the machine that issued the session id. On two machines the second
+# poll lands on the other one and the client loops on "Session ID unknown" - which looks like the
+# host screen hanging forever on "Creating your room...". Even over pure websockets it would still
+# break, just more subtly: a guest could land on the machine that does not have their host's room.
+#
+# `fly launch` provisions two machines by default for high availability. Scale it back down.
+# Supporting more than one would mean moving room state into Redis and adding the socket.io Redis
+# adapter - a real change, not a config flag.
+#
 # fly.toml app configuration file generated for karaoke-room on 2026-08-27T01:03:32Z
-#
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
 
 app = 'karaoke-room'
 primary_region = 'sjc'
@@ -9,19 +19,27 @@ primary_region = 'sjc'
 [build]
 
 [env]
-  CLIENT_ORIGIN = 'https://karaoke-room.fly.dev'
-  NODE_ENV = 'production'
   PORT = '8080'
+  NODE_ENV = 'production'
+  # Fly's edge proxy sits in front of every request, so trust exactly that one hop. Without this
+  # every guest looks like the proxy and the whole room shares one rate-limit bucket.
   TRUST_PROXY = '1'
+  # Must match the hostname guests actually load, including https://. The server refuses to boot in
+  # production without it and rejects sockets from any other origin.
+  CLIENT_ORIGIN = 'https://karaoke-room.fly.dev'
 
 [http_service]
   internal_port = 8080
   force_https = true
+
+  # Never scale to zero: a stopped machine ends every party on it, and a cold start greets a
+  # visitor with a blank wait. This is the deliberate cost of running 24/7.
   auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
   [http_service.concurrency]
+    # Websockets are long-lived, so cap on open connections rather than request rate.
     type = 'connections'
     hard_limit = 250
     soft_limit = 200

@@ -18,6 +18,7 @@ export default function HostView({ onExit }: HostViewProps) {
   const [trial, setTrial] = useState(0);
   const [members, setMembers] = useState<Map<string, any>>(new Map());
   const [membersOpen, setMembersOpen] = useState(false);
+  const [connError, setConnError] = useState('');
 
   useEffect(() => {
     const createRoom = () => {
@@ -31,6 +32,7 @@ export default function HostView({ onExit }: HostViewProps) {
     // Runs on the first connect and again after every reconnect (tab reload, wifi blip). A saved
     // session reclaims the same room via its token; otherwise start a fresh one.
     const onConnect = () => {
+      setConnError('');
       const saved = loadHost();
       if (saved) {
         socket.emit('host:resumeRoom', saved, (res: any) => {
@@ -66,7 +68,12 @@ export default function HostView({ onExit }: HostViewProps) {
       setMembers(new Map(Object.entries(userMap)));
     };
 
+    // socket.io retries forever on its own, so without this the screen would sit on "Creating your
+    // room..." with no hint that anything is wrong.
+    const onConnectError = () => setConnError("Can't reach the server - still trying...");
+
     socket.on('connect', onConnect);
+    socket.on('connect_error', onConnectError);
     socket.on('queue:update', handleQueueUpdate);
     socket.on('room:update', handleRoomUpdate);
 
@@ -76,6 +83,7 @@ export default function HostView({ onExit }: HostViewProps) {
 
     return () => {
       socket.off('connect', onConnect);
+      socket.off('connect_error', onConnectError);
       socket.off('queue:update', handleQueueUpdate);
       socket.off('room:update', handleRoomUpdate);
     };
@@ -177,7 +185,7 @@ export default function HostView({ onExit }: HostViewProps) {
   };
 
   if (!roomCode) {
-    return <p>Creating your room...</p>;
+    return <p>{connError || 'Creating your room...'}</p>;
   }
 
   return (

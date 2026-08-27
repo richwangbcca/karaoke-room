@@ -119,13 +119,24 @@ fly secrets set \
   SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=... \
   YOUTUBE_API_KEY=... REDIS_URL=rediss://...
 fly deploy
+fly scale count 1               # REQUIRED - fly launch gives you two machines
 ```
 Then edit `app` and `CLIENT_ORIGIN` in `fly.toml` to the hostname Fly gave you and deploy again -
 the server refuses to boot in production without `CLIENT_ORIGIN`, and rejects sockets from any other
-origin. Keep the API keys in `fly secrets`, never in `fly.toml`, which is committed.
+origin. Keep the API keys in `fly secrets`, never in `fly.toml`, which is committed. Note that
+`fly launch` rewrites `fly.toml` and drops its comments, so re-check the settings afterwards.
 
-Stay on one machine. Each would hold its own copy of the in-memory rooms, so a guest whose socket
-landed on the other one would not find the room its host created.
+**Run exactly one machine.** `fly launch` provisions two for high availability, which breaks this
+app in a way that looks unrelated to scaling: socket.io's polling handshake gets its session id from
+one machine and its next poll from the other, which answers `Session ID unknown`, so the client
+retries forever and the host screen never leaves "Creating your room...". Websocket-only transport
+would hide that but leave a subtler bug, since rooms live in each process's memory and a guest could
+land on the machine that does not have their host's room. Serving more than one machine means moving
+room state into Redis and adding the socket.io Redis adapter.
+```
+fly scale count 1               # fix a two-machine deployment
+fly status                      # confirm exactly one machine is listed
+```
 Start development servers
 ```
 pnpm start
