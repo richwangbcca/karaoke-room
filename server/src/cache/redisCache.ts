@@ -28,9 +28,24 @@ const noteOutage = (context: string, err: unknown): void => {
     console.error(`Redis unavailable (${context}), serving uncached:`, (err as Error)?.message ?? err);
 };
 
+// A managed Redis closes connections that have gone idle, and node-redis reports that as a socket
+// close. It is not an outage - the next cache call reconnects transparently, measured at ~1ms - so
+// saying "unavailable" here would cry wolf in the logs of an app that idles most of the day.
+let lastIdleLogged = 0;
+const noteIdleClose = (): void => {
+    const now = Date.now();
+    if (now - lastIdleLogged < RETRY_COOLDOWN_MS) return;
+    lastIdleLogged = now;
+    console.log('Redis closed an idle connection; reconnecting on next use.');
+};
+
 // An unhandled 'error' event would take the process down, so this has to exist even though every
 // caller below already handles its own failure.
-client.on('error', (err: unknown) => noteOutage('connection', err));
+client.on('error', (err: unknown) => {
+    const message = (err as Error)?.message ?? String(err);
+    if (/socket closed/i.test(message)) return noteIdleClose();
+    noteOutage('connection', err);
+});
 
 let connecting: Promise<void> | null = null;
 let downUntil = 0;

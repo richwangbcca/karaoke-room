@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "ts-node tests/testAuth.ts && ts-node tests/testVideoCache.ts && ts-node tests/testHardening.ts && ts-node tests/testCacheOutage.ts",
+    "test": "ts-node tests/testAuth.ts && ts-node tests/testVideoCache.ts && ts-node tests/testHardening.ts && ts-node tests/testCacheOutage.ts && ts-node tests/testCacheReconnect.ts",
     "dev": "ts-node-dev src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
